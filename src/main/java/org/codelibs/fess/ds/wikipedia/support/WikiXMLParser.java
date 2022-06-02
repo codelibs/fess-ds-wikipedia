@@ -45,26 +45,22 @@ public abstract class WikiXMLParser {
      * implementations of {@link PageCallbackHandler}
      *
      * @param handler
-     * @throws Exception
      */
     public abstract void setPageCallback(PageCallbackHandler handler);
 
     /**
      * The main parse method.
-     *
-     * @throws Exception
      */
     public abstract void parse();
 
     /**
      * @return an iterator to the list of pages
-     * @throws Exception
      */
     public abstract WikiPageIterator getIterator();
 
     /**
      * @return An InputSource created from wikiXMLFile
-     * @throws Exception
+     * @throws IOException
      */
     protected InputSource getInputSource() throws IOException {
         if (wikiXMLFile.toExternalForm().endsWith(".gz")) {

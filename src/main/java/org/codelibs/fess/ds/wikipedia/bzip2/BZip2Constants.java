@@ -39,7 +39,6 @@ public interface BZip2Constants {
     /**
      * This array really shouldn't be here.
      * Again, for historical purposes it is.
-     * <p/>
      * <p>FIXME: This array should be in a private or package private
      * location, since it could be modified by malicious code.</p>
      */

@@ -43,7 +43,6 @@ public class WikiXMLSAXParser extends WikiXMLParser {
      * implementations of {@link PageCallbackHandler}
      *
      * @param handler
-     * @throws Exception
      */
     @Override
     public void setPageCallback(final PageCallbackHandler handler) {
@@ -52,8 +51,6 @@ public class WikiXMLSAXParser extends WikiXMLParser {
 
     /**
      * The main parse method.
-     *
-     * @throws Exception
      */
     @Override
     public void parse() {

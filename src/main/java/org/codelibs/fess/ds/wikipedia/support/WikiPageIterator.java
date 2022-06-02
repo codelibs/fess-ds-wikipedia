@@ -18,10 +18,9 @@ package org.codelibs.fess.ds.wikipedia.support;
 import java.util.Vector;
 
 /**
- * A class to iterate the pages after the wikipedia XML file has been parsed with {@link WikiXMLDOMParser}.
+ * A class to iterate the pages after the wikipedia XML file has been parsed with WikiXMLDOMParser.
  *
  * @author Delip Rao
- * @see WikiXMLDOMParser
  */
 public class WikiPageIterator {
 
