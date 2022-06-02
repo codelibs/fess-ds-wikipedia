@@ -62,11 +62,13 @@ public class WikipediaDataStore extends AbstractDataStore {
         final long readInterval = getReadInterval(paramMap);
         final URL wikipediaUrl = getWikipediaUrl(paramMap);
         final int limit = Integer.parseInt(paramMap.getAsString("limit", "0"));
+        final int totalEntitySizeLimit = Integer.parseInt(paramMap.getAsString("total_entity_size_limit", "100000000"));
         final int maxDigestLength = Integer.parseInt(paramMap.getAsString("max_digest_length", "100"));
         final String scriptType = getScriptType(paramMap);
         logger.info("url: {}", wikipediaUrl);
         final AtomicInteger counter = new AtomicInteger();
         final WikiXMLSAXParser xmlParser = new WikiXMLSAXParser(wikipediaUrl);
+        xmlParser.setTotalEntitySizeLimit(totalEntitySizeLimit);
         xmlParser.setPageCallback(page -> {
             final StatsKeyObject statsKey = new StatsKeyObject(dataConfig.getId() + "#" + page.getId());
             paramMap.put(Constants.CRAWLER_STATS_KEY, statsKey);

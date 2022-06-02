@@ -18,10 +18,14 @@ package org.codelibs.fess.ds.wikipedia.support;
 import java.io.IOException;
 import java.net.URL;
 
+import javax.xml.XMLConstants;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import org.codelibs.core.lang.StringUtil;
 import org.codelibs.fess.exception.DataStoreException;
 import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.XMLReaderFactory;
 
 /**
  * A SAX Parser for Wikipedia XML dumps.
@@ -30,8 +34,11 @@ import org.xml.sax.helpers.XMLReaderFactory;
  */
 public class WikiXMLSAXParser extends WikiXMLParser {
 
+    private static final String TOTAL_ENTITY_SIZE_LIMIT = "http://www.oracle.com/xml/jaxp/properties/totalEntitySizeLimit";
+
     private PageCallbackHandler pageHandler = null;
-    private SAXPageCallbackHandler handler = null;
+
+    private int totalEntitySizeLimit = 50000000;
 
     public WikiXMLSAXParser(final URL fileName) {
         super(fileName);
@@ -55,11 +62,16 @@ public class WikiXMLSAXParser extends WikiXMLParser {
     @Override
     public void parse() {
         try {
-            final XMLReader xmlReader = XMLReaderFactory.createXMLReader();
-            handler = new SAXPageCallbackHandler(pageHandler);
-            xmlReader.setContentHandler(handler);
-            xmlReader.parse(getInputSource());
-        } catch (IOException | SAXException e) {
+            final SAXParserFactory factory = SAXParserFactory.newInstance();
+            factory.setFeature(org.codelibs.fess.crawler.Constants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature(org.codelibs.fess.crawler.Constants.FEATURE_EXTERNAL_GENERAL_ENTITIES, false);
+            factory.setFeature(org.codelibs.fess.crawler.Constants.FEATURE_EXTERNAL_PARAMETER_ENTITIES, false);
+            final SAXParser parser = factory.newSAXParser();
+            parser.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, StringUtil.EMPTY);
+            parser.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, StringUtil.EMPTY);
+            parser.setProperty(TOTAL_ENTITY_SIZE_LIMIT, totalEntitySizeLimit);
+            parser.parse(getInputSource(), new SAXPageCallbackHandler(pageHandler));
+        } catch (ParserConfigurationException | IOException | SAXException e) {
             throw new DataStoreException("Could not parse wikipedia file.", e);
         }
     }
@@ -74,5 +86,9 @@ public class WikiXMLSAXParser extends WikiXMLParser {
             throw new DataStoreException("Custom page callback found. Will not iterate.");
         }
         throw new UnsupportedOperationException();
+    }
+
+    public void setTotalEntitySizeLimit(final int totalEntitySizeLimit) {
+        this.totalEntitySizeLimit = totalEntitySizeLimit;
     }
 }
