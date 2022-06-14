@@ -22,6 +22,7 @@ package org.codelibs.fess.ds.wikipedia.bzip2;
  * This interface is public for historical purposes.
  * You should have no need to use it.
  * </p>
+ * @see <a href="https://github.com/elastic/elasticsearch-river-wikipedia">Wikipedia River Plugin for Elasticsearch</a>
  */
 public interface BZip2Constants {
 

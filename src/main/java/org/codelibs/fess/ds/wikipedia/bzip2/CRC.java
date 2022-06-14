@@ -18,6 +18,7 @@ package org.codelibs.fess.ds.wikipedia.bzip2;
 /**
  * A simple class the hold and calculate the CRC for sanity checking
  * of the data.
+ * @see <a href="https://github.com/elastic/elasticsearch-river-wikipedia">Wikipedia River Plugin for Elasticsearch</a>
  */
 final class CRC {
     static final int crc32Table[] = { 0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9, 0x130476dc, 0x17c56b6b, 0x1a864db2, 0x1e475005,

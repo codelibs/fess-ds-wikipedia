@@ -31,6 +31,7 @@ import org.xml.sax.SAXException;
  * A SAX Parser for Wikipedia XML dumps.
  *
  * @author Jason Smith
+ * @see <a href="https://github.com/elastic/elasticsearch-river-wikipedia">Wikipedia River Plugin for Elasticsearch</a>
  */
 public class WikiXMLSAXParser extends WikiXMLParser {
 

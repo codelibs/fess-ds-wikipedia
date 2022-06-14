@@ -28,6 +28,7 @@ import org.xml.sax.InputSource;
 /**
  * @author Delip Rao
  * @author Jason Smith
+ * @see <a href="https://github.com/elastic/elasticsearch-river-wikipedia">Wikipedia River Plugin for Elasticsearch</a>
  */
 public abstract class WikiXMLParser {
 

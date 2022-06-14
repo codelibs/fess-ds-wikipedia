@@ -25,8 +25,8 @@ package org.codelibs.fess.ds.wikipedia.support;
  *
  * @author Delip Rao
  * @see WikiPage
+ * @see <a href="https://github.com/elastic/elasticsearch-river-wikipedia">Wikipedia River Plugin for Elasticsearch</a>
  */
-
 public interface PageCallbackHandler {
     /**
      * This is the callback method that should be implemented before

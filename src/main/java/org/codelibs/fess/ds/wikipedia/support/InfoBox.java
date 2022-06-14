@@ -19,6 +19,7 @@ package org.codelibs.fess.ds.wikipedia.support;
  * A class abstracting Wiki infobox
  *
  * @author Delip Rao
+ * @see <a href="https://github.com/elastic/elasticsearch-river-wikipedia">Wikipedia River Plugin for Elasticsearch</a>
  */
 public class InfoBox {
     String infoBoxWikiText = null;

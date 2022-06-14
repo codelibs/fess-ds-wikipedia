@@ -31,6 +31,7 @@ import java.io.InputStream;
  * read()} method exclusively. Thus you should consider to use a
  * buffered source stream.</p>
  * <p>Instances of this class are not threadsafe.</p>
+ * @see <a href="https://github.com/elastic/elasticsearch-river-wikipedia">Wikipedia River Plugin for Elasticsearch</a>
  */
 public class CBZip2InputStream extends InputStream implements BZip2Constants {
 

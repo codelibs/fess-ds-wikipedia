@@ -22,6 +22,7 @@ import java.util.List;
  * Data structures for a wikipedia page.
  *
  * @author Delip Rao
+ * @see <a href="https://github.com/elastic/elasticsearch-river-wikipedia">Wikipedia River Plugin for Elasticsearch</a>
  */
 public class WikiPage {
 

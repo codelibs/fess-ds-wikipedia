@@ -29,6 +29,7 @@ import org.xml.sax.helpers.DefaultHandler;
  * A Wrapper class for the PageCallbackHandler
  *
  * @author Jason Smith
+ * @see <a href="https://github.com/elastic/elasticsearch-river-wikipedia">Wikipedia River Plugin for Elasticsearch</a>
  */
 public class SAXPageCallbackHandler extends DefaultHandler {
 
