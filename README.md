@@ -8,7 +8,7 @@ Wikipedia Data Store crawls Wikipedia pages from a dump file.
 
 ## Download
 
-See [Maven Repository](http://central.maven.org/maven2/org/codelibs/fess/fess-ds-wikipedia/).
+See [Maven Repository](https://repo1.maven.org/maven2/org/codelibs/fess/fess-ds-wikipedia/).
 
 ## Installation
 
