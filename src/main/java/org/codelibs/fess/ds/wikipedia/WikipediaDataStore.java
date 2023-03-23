@@ -160,7 +160,7 @@ public class WikipediaDataStore extends AbstractDataStore {
                 crawlerStatsHelper.done(statsKey);
             }
 
-            if (limit > 0 && counter.incrementAndGet() > limit) {
+            if (limit > 0 && counter.incrementAndGet() >= limit) {
                 logger.info("Wikipedia crawler is stopped. ({} > {})", counter.get(), limit);
                 throw new ParserStoppedException(page.getId());
             }
