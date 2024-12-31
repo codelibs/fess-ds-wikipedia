@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.codelibs.fess.Constants;
 import org.codelibs.fess.app.service.FailureUrlService;
 import org.codelibs.fess.crawler.exception.CrawlingAccessException;
@@ -40,12 +42,10 @@ import org.codelibs.fess.helper.CrawlerStatsHelper;
 import org.codelibs.fess.helper.CrawlerStatsHelper.StatsAction;
 import org.codelibs.fess.helper.CrawlerStatsHelper.StatsKeyObject;
 import org.codelibs.fess.util.ComponentUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class WikipediaDataStore extends AbstractDataStore {
 
-    private static final Logger logger = LoggerFactory.getLogger(WikipediaDataStore.class);
+    private static final Logger logger = LogManager.getLogger(WikipediaDataStore.class);
 
     private static final String DEFAULT_WIKIPEDIA_URL = "http://download.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles.xml.bz2";
 

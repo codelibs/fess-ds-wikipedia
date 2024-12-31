@@ -19,9 +19,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.codelibs.core.lang.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -35,7 +35,7 @@ public class SAXPageCallbackHandler extends DefaultHandler {
 
     private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
-    private static final Logger logger = LoggerFactory.getLogger(SAXPageCallbackHandler.class);
+    private static final Logger logger = LogManager.getLogger(SAXPageCallbackHandler.class);
 
     public static final TimeZone TIMEZONE_UTC = TimeZone.getTimeZone("UTC");
 
