@@ -125,8 +125,8 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
      * to skip the first two bytes. Otherwise this constructor will
      * throw an exception. </p>
      *
-     * @throws java.io.IOException  if the stream content is malformed or an I/O error occurs.
      * @param in InputStream to read from
+     * @throws java.io.IOException  if the stream content is malformed or an I/O error occurs.
      * @throws NullPointerException if in == null
      */
     public CBZip2InputStream(final InputStream in) throws IOException {
