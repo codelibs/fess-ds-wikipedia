@@ -15,10 +15,17 @@
  */
 package org.codelibs.fess.ds.wikipedia.support;
 
+/**
+ * Handles WikiPage objects and notifies the WikiXMLParser.
+ */
 public class IteratorHandler implements PageCallbackHandler {
 
     private WikiXMLParser parser = null;
 
+    /**
+     * Constructs an IteratorHandler with the specified WikiXMLParser.
+     * @param myParser The WikiXMLParser instance to be used for page notifications.
+     */
     public IteratorHandler(final WikiXMLParser myParser) {
         parser = myParser;
     }

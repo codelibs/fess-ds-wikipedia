@@ -26,6 +26,8 @@ import org.codelibs.fess.ds.wikipedia.bzip2.CBZip2InputStream;
 import org.xml.sax.InputSource;
 
 /**
+ * Abstract base class for parsing Wikipedia XML dumps.
+ *
  * @author Delip Rao
  * @author Jason Smith
  * @see <a href="https://github.com/elastic/elasticsearch-river-wikipedia">Wikipedia River Plugin for Elasticsearch</a>
@@ -33,9 +35,15 @@ import org.xml.sax.InputSource;
 public abstract class WikiXMLParser {
 
     private URL wikiXMLFile = null;
+    /** The current page being processed */
     protected WikiPage currentPage = null;
     private BufferedReader br;
 
+    /**
+     * Constructs a new WikiXMLParser with the specified file URL.
+     *
+     * @param fileName the URL of the Wikipedia XML file to parse
+     */
     public WikiXMLParser(final URL fileName) {
         wikiXMLFile = fileName;
     }
@@ -45,7 +53,7 @@ public abstract class WikiXMLParser {
      * page instance is detected in the stream. Custom handlers are
      * implementations of {@link PageCallbackHandler}
      *
-     * @param handler
+     * @param handler the callback handler to be executed for each page
      */
     public abstract void setPageCallback(PageCallbackHandler handler);
 
@@ -55,13 +63,17 @@ public abstract class WikiXMLParser {
     public abstract void parse();
 
     /**
+     * Gets an iterator for traversing pages in the XML file.
+     *
      * @return an iterator to the list of pages
      */
     public abstract WikiPageIterator getIterator();
 
     /**
+     * Creates an InputSource from the Wikipedia XML file, handling different compression formats.
+     *
      * @return An InputSource created from wikiXMLFile
-     * @throws IOException
+     * @throws IOException if there is an error reading the file
      */
     protected InputSource getInputSource() throws IOException {
         if (wikiXMLFile.toExternalForm().endsWith(".gz")) {
@@ -79,10 +91,20 @@ public abstract class WikiXMLParser {
         return new InputSource(br);
     }
 
+    /**
+     * Notifies that a page has been processed and sets it as the current page.
+     *
+     * @param page the page that has been processed
+     */
     protected void notifyPage(final WikiPage page) {
         currentPage = page;
     }
 
+    /**
+     * Closes the buffered reader and releases resources.
+     *
+     * @throws IOException if there is an error closing the reader
+     */
     public void close() throws IOException {
         if (br != null) {
             br.close();
