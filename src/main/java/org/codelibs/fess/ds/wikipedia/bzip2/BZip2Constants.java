@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2023 CodeLibs Project and the Others.
+ * Copyright 2012-2025 CodeLibs Project and the Others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,15 +26,45 @@ package org.codelibs.fess.ds.wikipedia.bzip2;
  */
 public interface BZip2Constants {
 
+    /**
+     * The base block size used in BZip2 compression, in bytes.
+     */
     int baseBlockSize = 100000;
+    /**
+     * Maximum alphabet size.
+     */
     int MAX_ALPHA_SIZE = 258;
+    /**
+     * Maximum length of a Huffman code.
+     */
     int MAX_CODE_LEN = 23;
+    /**
+     * Constant for run-length encoding, representing the first run type.
+     */
     int RUNA = 0;
+    /**
+     * Constant for run-length encoding, representing the second run type.
+     */
     int RUNB = 1;
+    /**
+     * Number of groups for the Huffman coding tables.
+     */
     int N_GROUPS = 6;
+    /**
+     * The group size for selectors.
+     */
     int G_SIZE = 50;
+    /**
+     * Number of iterations for the BZip2 algorithm.
+     */
     int N_ITERS = 4;
+    /**
+     * Maximum number of selectors.
+     */
     int MAX_SELECTORS = (2 + (900000 / G_SIZE));
+    /**
+     * Number of overshoot bytes for BZip2 operations.
+     */
     int NUM_OVERSHOOT_BYTES = 20;
 
     /**

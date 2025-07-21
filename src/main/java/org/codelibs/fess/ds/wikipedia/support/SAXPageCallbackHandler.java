@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2023 CodeLibs Project and the Others.
+ * Copyright 2012-2025 CodeLibs Project and the Others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.codelibs.core.lang.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -35,8 +35,11 @@ public class SAXPageCallbackHandler extends DefaultHandler {
 
     private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
-    private static final Logger logger = LoggerFactory.getLogger(SAXPageCallbackHandler.class);
+    private static final Logger logger = LogManager.getLogger(SAXPageCallbackHandler.class);
 
+    /**
+     * UTC TimeZone instance.
+     */
     public static final TimeZone TIMEZONE_UTC = TimeZone.getTimeZone("UTC");
 
     private final PageCallbackHandler pageHandler;
@@ -46,6 +49,10 @@ public class SAXPageCallbackHandler extends DefaultHandler {
     private String currentWikitext;
     private String currentTitle;
 
+    /**
+     * Constructs a new SAXPageCallbackHandler with the specified PageCallbackHandler.
+     * @param ph The PageCallbackHandler to use for processing Wikipedia pages.
+     */
     public SAXPageCallbackHandler(final PageCallbackHandler ph) {
         pageHandler = ph;
     }

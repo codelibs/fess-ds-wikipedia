@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2023 CodeLibs Project and the Others.
+ * Copyright 2012-2025 CodeLibs Project and the Others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,11 @@ public class WikiTextParser {
     private static Pattern disambCatPattern = Pattern.compile("\\{\\{[Dd]isambig(uation)?\\}\\}");
     private InfoBox infoBox = null;
 
+    /**
+     * Constructs a new WikiTextParser with the provided wiki text.
+     *
+     * @param wtext The wiki formatted text to parse.
+     */
     public WikiTextParser(final String wtext) {
         wikiText = wtext;
         Matcher matcher = redirectPattern.matcher(wikiText);
@@ -56,22 +61,47 @@ public class WikiTextParser {
         disambiguation = matcher.find();
     }
 
+    /**
+     * Checks if the wiki text contains a redirect directive.
+     *
+     * @return true if this page is a redirect, false otherwise
+     */
     public boolean isRedirect() {
         return redirect;
     }
 
+    /**
+     * Checks if the wiki text represents a stub page.
+     *
+     * @return true if this page is a stub, false otherwise
+     */
     public boolean isStub() {
         return stub;
     }
 
+    /**
+     * Gets the redirect target text if this page is a redirect.
+     *
+     * @return the redirect target string, or null if not a redirect
+     */
     public String getRedirectText() {
         return redirectString;
     }
 
+    /**
+     * Gets the raw wiki text content.
+     *
+     * @return the original wiki formatted text
+     */
     public String getText() {
         return wikiText;
     }
 
+    /**
+     * Retrieves the categories associated with the wiki text.
+     *
+     * @return A list of categories as strings.
+     */
     public ArrayList<String> getCategories() {
         if (pageCats == null) {
             parseCategories();
@@ -79,6 +109,11 @@ public class WikiTextParser {
         return pageCats;
     }
 
+    /**
+     * Retrieves the internal links found within the wiki text.
+     *
+     * @return A list of internal links as strings.
+     */
     public ArrayList<String> getLinks() {
         if (pageLinks == null) {
             parseLinks();
@@ -113,6 +148,12 @@ public class WikiTextParser {
         }
     }
 
+    /**
+     * Extracts and returns the plain text content from the wiki text, removing
+     * wiki markup, HTML tags, and other non-text elements.
+     *
+     * @return The plain text representation of the wiki content.
+     */
     public String getPlainText() {
         String text = wikiText.replace("&gt;", ">");
         text = text.replace("&lt;", "<");
@@ -126,6 +167,12 @@ public class WikiTextParser {
         return text.replaceAll("\\'+", "");
     }
 
+    /**
+     * Retrieves the InfoBox object associated with the wiki text.
+     * The InfoBox is parsed only once due to its expensive nature.
+     *
+     * @return The InfoBox object, or null if no InfoBox is found.
+     */
     public InfoBox getInfoBox() {
         //parseInfoBox is expensive. Doing it only once like other parse* methods
         if (infoBox == null) {
@@ -192,10 +239,21 @@ public class WikiTextParser {
         return stripCite(text);
     }
 
+    /**
+     * Checks if the wiki text represents a disambiguation page.
+     *
+     * @return true if this page is a disambiguation page, false otherwise
+     */
     public boolean isDisambiguationPage() {
         return disambiguation;
     }
 
+    /**
+     * Gets the translated title for the specified language code.
+     *
+     * @param languageCode the ISO language code to search for
+     * @return the translated title for the given language, or null if not found
+     */
     public String getTranslatedTitle(final String languageCode) {
         final Pattern pattern = Pattern.compile("^\\[\\[" + languageCode + ":(.*?)\\]\\]$", Pattern.MULTILINE);
         final Matcher matcher = pattern.matcher(wikiText);

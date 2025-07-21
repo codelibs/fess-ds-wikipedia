@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2023 CodeLibs Project and the Others.
+ * Copyright 2012-2025 CodeLibs Project and the Others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,15 @@ package org.codelibs.fess.ds.wikipedia.exception;
 
 import org.codelibs.fess.exception.DataStoreException;
 
+/**
+ * This exception is thrown when the Wikipedia XML parsing process is stopped.
+ */
 public class ParserStoppedException extends DataStoreException {
+    /**
+     * Creates a new instance of the ParserStoppedException with the specified ID.
+     *
+     * @param id the ID of the parser that was stopped
+     */
     public ParserStoppedException(final String id) {
         super(id);
     }
