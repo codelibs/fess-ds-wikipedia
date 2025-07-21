@@ -28,6 +28,11 @@ public class InfoBox {
         this.infoBoxWikiText = infoBoxWikiText;
     }
 
+    /**
+     * Returns the raw WikiText of the infobox.
+     *
+     * @return the raw WikiText of the infobox
+     */
     public String dumpRaw() {
         return infoBoxWikiText;
     }

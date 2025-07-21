@@ -43,9 +43,21 @@ import org.codelibs.fess.helper.CrawlerStatsHelper.StatsKeyObject;
 import org.codelibs.fess.opensearch.config.exentity.DataConfig;
 import org.codelibs.fess.util.ComponentUtil;
 
+/**
+ * This class is the main entry point for the Wikipedia Data Store plugin.
+ * It extends AbstractDataStore and handles configuration parsing, orchestrates
+ * Wikipedia XML parsing and indexing, and manages error handling and crawler statistics.
+ */
 public class WikipediaDataStore extends AbstractDataStore {
 
     private static final Logger logger = LogManager.getLogger(WikipediaDataStore.class);
+
+    /**
+     * Default constructor for WikipediaDataStore.
+     */
+    public WikipediaDataStore() {
+        super();
+    }
 
     private static final String DEFAULT_WIKIPEDIA_URL = "http://download.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles.xml.bz2";
 

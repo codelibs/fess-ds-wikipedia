@@ -37,6 +37,9 @@ public class SAXPageCallbackHandler extends DefaultHandler {
 
     private static final Logger logger = LogManager.getLogger(SAXPageCallbackHandler.class);
 
+    /**
+     * UTC TimeZone instance.
+     */
     public static final TimeZone TIMEZONE_UTC = TimeZone.getTimeZone("UTC");
 
     private final PageCallbackHandler pageHandler;
@@ -46,6 +49,10 @@ public class SAXPageCallbackHandler extends DefaultHandler {
     private String currentWikitext;
     private String currentTitle;
 
+    /**
+     * Constructs a new SAXPageCallbackHandler with the specified PageCallbackHandler.
+     * @param ph The PageCallbackHandler to use for processing Wikipedia pages.
+     */
     public SAXPageCallbackHandler(final PageCallbackHandler ph) {
         pageHandler = ph;
     }

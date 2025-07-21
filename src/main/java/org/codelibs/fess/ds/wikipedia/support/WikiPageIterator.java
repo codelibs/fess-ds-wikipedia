@@ -29,6 +29,10 @@ public class WikiPageIterator {
     private int lastPage = 0;
     Vector<WikiPage> pageList = null;
 
+    /**
+     * Creates a new WikiPageIterator with the given list of WikiPages.
+     * @param list The list of WikiPages to iterate over.
+     */
     public WikiPageIterator(final Vector<WikiPage> list) {
         pageList = list;
         if (pageList != null) {
@@ -37,6 +41,7 @@ public class WikiPageIterator {
     }
 
     /**
+     * Checks if there are more pages to be read.
      * @return true if there are more pages to be read
      */
     public boolean hasMorePages() {

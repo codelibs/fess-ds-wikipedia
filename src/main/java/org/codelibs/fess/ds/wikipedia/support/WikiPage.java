@@ -26,6 +26,13 @@ import java.util.List;
  */
 public class WikiPage {
 
+    /**
+     * Constructs a new WikiPage object.
+     */
+    public WikiPage() {
+        // default constructor
+    }
+
     private String title = null;
     private WikiTextParser wikiTextParser = null;
     private String id = null;
@@ -36,7 +43,7 @@ public class WikiPage {
     /**
      * Set the page title. This is not intended for direct use.
      *
-     * @param title
+     * @param title the title of the Wikipedia page
      */
     public void setTitle(final String title) {
         this.title = title;
@@ -53,6 +60,8 @@ public class WikiPage {
     }
 
     /**
+     * Returns the title of the Wikipedia page.
+     *
      * @return a string containing the page title.
      */
     public String getTitle() {
@@ -60,15 +69,17 @@ public class WikiPage {
     }
 
     /**
-     * @param languageCode
-     * @return a string containing the title translated
-     *         in the given languageCode.
+     * Returns the title translated into the specified language.
+     * @param languageCode The language code for the desired translation (e.g., "en", "fr").
+     * @return A string containing the title translated in the given languageCode.
      */
     public String getTranslatedTitle(final String languageCode) {
         return wikiTextParser.getTranslatedTitle(languageCode);
     }
 
     /**
+     * Checks if this page is a disambiguation page.
+     *
      * @return true if this a disambiguation page.
      */
     public boolean isDisambiguationPage() {
@@ -79,6 +90,8 @@ public class WikiPage {
     }
 
     /**
+     * Checks if this page is a special page.
+     *
      * @return true for "special pages" -- like Category:, Wikipedia:, etc
      */
     public boolean isSpecialPage() {
@@ -96,6 +109,8 @@ public class WikiPage {
     }
 
     /**
+     * Checks if this page is a redirection page.
+     *
      * @return true if this is a redirection page
      */
     public boolean isRedirect() {
@@ -103,6 +118,8 @@ public class WikiPage {
     }
 
     /**
+     * Checks if this page is a stub page.
+     *
      * @return true if this is a stub page
      */
     public boolean isStub() {
@@ -110,6 +127,8 @@ public class WikiPage {
     }
 
     /**
+     * Returns the title of the page being redirected to.
+     *
      * @return the title of the page being redirected to.
      */
     public String getRedirectPage() {
@@ -117,6 +136,8 @@ public class WikiPage {
     }
 
     /**
+     * Returns the plain text content of the Wikipedia page, stripped of all wiki formatting.
+     *
      * @return plain text stripped of all wiki formatting.
      */
     public String getText() {
@@ -124,6 +145,8 @@ public class WikiPage {
     }
 
     /**
+     * Returns a list of categories the page belongs to.
+     *
      * @return a list of categories the page belongs to, null if this a redirection/disambiguation page
      */
     public List<String> getCategories() {
@@ -131,44 +154,91 @@ public class WikiPage {
     }
 
     /**
+     * Returns a list of links contained in the page.
+     *
      * @return a list of links contained in the page
      */
     public List<String> getLinks() {
         return wikiTextParser.getLinks();
     }
 
+    /**
+     * Sets the ID of the Wikipedia page.
+     *
+     * @param id a string containing the page ID.
+     */
     public void setId(final String id) {
         this.id = id;
     }
 
+    /**
+     * Returns the InfoBox associated with this Wikipedia page.
+     *
+     * @return an InfoBox object containing structured data from the page's infobox.
+     */
     public InfoBox getInfoBox() {
         return wikiTextParser.getInfoBox();
     }
 
+    /**
+     * Returns the ID of the Wikipedia page.
+     *
+     * @return a string containing the page ID.
+     */
     public String getId() {
         return id;
     }
 
+    /**
+     * Sets the timestamp of the Wikipedia page.
+     *
+     * @param timestamp a Date object representing the page's timestamp.
+     */
     public void setTimestamp(final Date timestamp) {
         this.timestamp = timestamp;
     }
 
+    /**
+     * Returns the timestamp of the Wikipedia page.
+     *
+     * @return a Date object representing the page's timestamp.
+     */
     public Date getTimestamp() {
         return timestamp;
     }
 
+    /**
+     * Sets the format of the Wikipedia page content.
+     *
+     * @param format a string representing the content format.
+     */
     public void setFormat(final String format) {
         this.format = format;
     }
 
+    /**
+     * Returns the format of the Wikipedia page content.
+     *
+     * @return a string representing the content format.
+     */
     public String getFormat() {
         return format;
     }
 
+    /**
+     * Sets the model of the Wikipedia page content.
+     *
+     * @param model a string representing the content model.
+     */
     public void setModel(final String model) {
         this.model = model;
     }
 
+    /**
+     * Returns the model of the Wikipedia page content.
+     *
+     * @return a string representing the content model.
+     */
     public String getModel() {
         return model;
     }

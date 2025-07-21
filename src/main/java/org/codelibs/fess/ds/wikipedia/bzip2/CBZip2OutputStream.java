@@ -42,7 +42,7 @@ import java.io.OutputStream;
  * &lt;code&gt;65k + (5 * blocksize)&lt;/code&gt;.
  * </pre>
  * <table>
- * <caption></caption>
+ * <caption>Memory usage by block size</caption>
  * <colgroup> <col /> <col /> <col />
  * </colgroup>
  * <tr>
@@ -194,6 +194,10 @@ public class CBZip2OutputStream extends OutputStream implements BZip2Constants {
      * This method is accessible by subclasses for historical
      * purposes. If you don't know what it does then you don't need
      * it.
+     * @param len the code lengths
+     * @param freq the frequencies
+     * @param alphaSize the alphabet size
+     * @param maxLen the maximum length
      */
     protected static void hbMakeCodeLengths(final char[] len, final int[] freq, final int alphaSize, final int maxLen) {
         /*
@@ -663,6 +667,12 @@ public class CBZip2OutputStream extends OutputStream implements BZip2Constants {
         super.finalize();
     }
 
+    /**
+     * Finishes the compression process and releases resources.
+     * This method should be called to ensure all compressed data is written to the output stream.
+     *
+     * @throws IOException if an I/O error occurs.
+     */
     public void finish() throws IOException {
         if (out != null) {
             try {
@@ -794,6 +804,8 @@ public class CBZip2OutputStream extends OutputStream implements BZip2Constants {
 
     /**
      * Returns the blocksize parameter specified at construction time.
+     *
+     * @return the blocksize parameter.
      */
     public final int getBlockSize() {
         return this.blockSize100k;
