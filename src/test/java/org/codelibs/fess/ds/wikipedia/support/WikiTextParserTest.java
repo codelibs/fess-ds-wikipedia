@@ -247,7 +247,13 @@ public class WikiTextParserTest extends PlainTestCase {
         final String wikiText = "Text with &lt;tag&gt; entities";
         final WikiTextParser parser = new WikiTextParser(wikiText);
         final String plainText = parser.getPlainText();
-        assertTrue(plainText.contains("<tag>"));
+        // HTML entities are decoded to < and >, but then HTML tags are removed
+        assertFalse(plainText.contains("&lt;"));
+        assertFalse(plainText.contains("&gt;"));
+        // The decoded <tag> is removed as it's treated as an HTML tag
+        assertFalse(plainText.contains("<tag>"));
+        assertTrue(plainText.contains("Text with"));
+        assertTrue(plainText.contains("entities"));
     }
 
     public void test_getText_returnsOriginalText() {
@@ -338,7 +344,8 @@ public class WikiTextParserTest extends PlainTestCase {
         assertTrue(parser.isDisambiguationPage());
         assertTrue(parser.isStub());
         assertEquals(1, parser.getCategories().size());
-        assertEquals(1, parser.getLinks().size());
+        // Both [[Target]] from redirect and [[Link Page]] are counted as links
+        assertEquals(2, parser.getLinks().size());
     }
 
     public void test_emptyWikiText() {
