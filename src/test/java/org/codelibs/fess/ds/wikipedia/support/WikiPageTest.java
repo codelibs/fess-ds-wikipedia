@@ -15,17 +15,19 @@
  */
 package org.codelibs.fess.ds.wikipedia.support;
 
+import org.junit.jupiter.api.TestInfo;
+
 import java.util.Date;
 import java.util.List;
 
-import org.dbflute.utflute.core.PlainTestCase;
+import org.codelibs.fess.ds.wikipedia.UnitDsTestCase;
 
 /**
  * Test class for WikiPage.
  *
  * @author CodeLibs
  */
-public class WikiPageTest extends PlainTestCase {
+public class WikiPageTest extends UnitDsTestCase {
 
     public void test_setAndGetTitle() {
         final WikiPage page = new WikiPage();
@@ -234,11 +236,7 @@ public class WikiPageTest extends PlainTestCase {
         page.setModel("wikitext");
         page.setTimestamp(new Date());
         page.setWikiText(
-                "'''Test Article''' is a test.\n"
-                + "[[Category:Testing]]\n"
-                + "[[Link Page]]\n"
-                + "{{Infobox test\n|field=value\n}}"
-        );
+                "'''Test Article''' is a test.\n" + "[[Category:Testing]]\n" + "[[Link Page]]\n" + "{{Infobox test\n|field=value\n}}");
 
         assertEquals("Test Article", page.getTitle());
         assertEquals("98765", page.getId());

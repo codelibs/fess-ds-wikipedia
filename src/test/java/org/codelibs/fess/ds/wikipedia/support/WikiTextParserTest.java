@@ -15,16 +15,18 @@
  */
 package org.codelibs.fess.ds.wikipedia.support;
 
+import org.junit.jupiter.api.TestInfo;
+
 import java.util.ArrayList;
 
-import org.dbflute.utflute.core.PlainTestCase;
+import org.codelibs.fess.ds.wikipedia.UnitDsTestCase;
 
 /**
  * Test class for WikiTextParser.
  *
  * @author CodeLibs
  */
-public class WikiTextParserTest extends PlainTestCase {
+public class WikiTextParserTest extends UnitDsTestCase {
 
     public void test_isRedirect_withValidRedirect() {
         final String wikiText = "#REDIRECT [[Target Page]]";
@@ -333,12 +335,8 @@ public class WikiTextParserTest extends PlainTestCase {
     }
 
     public void test_complexWikiText_withMixedElements() {
-        final String wikiText = "#REDIRECT [[Target]]\n"
-                + "{{disambig}}\n"
-                + "{{geography-stub}}\n"
-                + "[[Category:Test]]\n"
-                + "[[Link Page]]\n"
-                + "Regular text";
+        final String wikiText = "#REDIRECT [[Target]]\n" + "{{disambig}}\n" + "{{geography-stub}}\n" + "[[Category:Test]]\n"
+                + "[[Link Page]]\n" + "Regular text";
         final WikiTextParser parser = new WikiTextParser(wikiText);
         assertTrue(parser.isRedirect());
         assertTrue(parser.isDisambiguationPage());
