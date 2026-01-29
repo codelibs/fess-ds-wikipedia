@@ -15,17 +15,19 @@
  */
 package org.codelibs.fess.ds.wikipedia;
 
+import org.junit.jupiter.api.TestInfo;
+
 import java.lang.reflect.Method;
 
 import org.codelibs.fess.util.ComponentUtil;
-import org.dbflute.utflute.lastaflute.LastaFluteTestCase;
+import org.codelibs.fess.ds.wikipedia.UnitDsTestCase;
 
 /**
  * Test class for WikipediaDataStore.
  *
  * @author CodeLibs
  */
-public class WikipediaDataStoreTest extends LastaFluteTestCase {
+public class WikipediaDataStoreTest extends UnitDsTestCase {
 
     private WikipediaDataStore dataStore;
 
@@ -40,15 +42,15 @@ public class WikipediaDataStoreTest extends LastaFluteTestCase {
     }
 
     @Override
-    public void setUp() throws Exception {
-        super.setUp();
+    public void setUp(TestInfo testInfo) throws Exception {
+        super.setUp(testInfo);
         dataStore = new WikipediaDataStore();
     }
 
     @Override
-    public void tearDown() throws Exception {
+    public void tearDown(TestInfo testInfo) throws Exception {
         ComponentUtil.setFessConfig(null);
-        super.tearDown();
+        super.tearDown(testInfo);
     }
 
     public void test_getName() {

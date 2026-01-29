@@ -15,14 +15,16 @@
  */
 package org.codelibs.fess.ds.wikipedia.support;
 
-import org.dbflute.utflute.core.PlainTestCase;
+import org.junit.jupiter.api.TestInfo;
+
+import org.codelibs.fess.ds.wikipedia.UnitDsTestCase;
 
 /**
  * Test class for InfoBox.
  *
  * @author CodeLibs
  */
-public class InfoBoxTest extends PlainTestCase {
+public class InfoBoxTest extends UnitDsTestCase {
 
     public void test_dumpRaw_returnsOriginalText() {
         final String infoBoxText = "{{Infobox person\n|name=John Doe\n|born=1990\n}}";
@@ -37,12 +39,8 @@ public class InfoBoxTest extends PlainTestCase {
     }
 
     public void test_dumpRaw_withComplexInfoBox() {
-        final String infoBoxText = "{{Infobox country\n"
-                + "|name=Test Country\n"
-                + "|capital=Test City\n"
-                + "|population=1000000\n"
-                + "|area=50000\n"
-                + "}}";
+        final String infoBoxText =
+                "{{Infobox country\n" + "|name=Test Country\n" + "|capital=Test City\n" + "|population=1000000\n" + "|area=50000\n" + "}}";
         final InfoBox infoBox = new InfoBox(infoBoxText);
         assertEquals(infoBoxText, infoBox.dumpRaw());
     }
@@ -72,11 +70,7 @@ public class InfoBoxTest extends PlainTestCase {
     }
 
     public void test_dumpRaw_withMultilineValues() {
-        final String infoBoxText = "{{Infobox\n"
-                + "|description=This is a\n"
-                + "multiline value\n"
-                + "with several lines\n"
-                + "}}";
+        final String infoBoxText = "{{Infobox\n" + "|description=This is a\n" + "multiline value\n" + "with several lines\n" + "}}";
         final InfoBox infoBox = new InfoBox(infoBoxText);
         assertEquals(infoBoxText, infoBox.dumpRaw());
     }
