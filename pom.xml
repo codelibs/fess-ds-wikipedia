@@ -92,6 +92,14 @@
 			<artifactId>corelib</artifactId>
 			<version>${corelib.version}</version>
 		</dependency>
+		<!-- Provided by Fess (WEB-INF/lib). fess-parent has no version property for this,
+		     so the version is pinned here and must match what Fess ships. -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-compress</artifactId>
+			<version>1.28.0</version>
+			<scope>provided</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.lastaflute</groupId>
 			<artifactId>lastaflute</artifactId>
