@@ -15,9 +15,14 @@
  */
 package org.codelibs.fess.ds.wikipedia.support;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +35,7 @@ import org.codelibs.fess.exception.DataStoreException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 public class DumpFetcherTest extends UnitDsTestCase {
@@ -55,7 +61,7 @@ public class DumpFetcherTest extends UnitDsTestCase {
         super.tearDown(testInfo);
     }
 
-    private void respond(final com.sun.net.httpserver.HttpExchange exchange, final String body) throws java.io.IOException {
+    private void respond(final HttpExchange exchange, final String body) throws IOException {
         final byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         exchange.sendResponseHeaders(200, bytes.length);
         try (OutputStream out = exchange.getResponseBody()) {
@@ -155,5 +161,100 @@ public class DumpFetcherTest extends UnitDsTestCase {
         } finally {
             Files.deleteIfExists(file);
         }
+    }
+
+    private HttpResponse<InputStream> sendRaw(final String path) throws IOException, InterruptedException {
+        final HttpClient client = HttpClient.newHttpClient();
+        final HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path)).GET().build();
+        return client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+    }
+
+    @Test
+    public void test_getRetryWait_parsesNumericRetryAfterHeaderAsSeconds() throws Exception {
+        server.createContext("/retry-numeric", exchange -> {
+            exchange.getResponseHeaders().add("Retry-After", "2");
+            exchange.sendResponseHeaders(429, -1);
+            exchange.close();
+        });
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final HttpResponse<InputStream> response = sendRaw("/retry-numeric");
+        try (InputStream ignored = response.body()) {
+            assertEquals(2000L, fetcher.getRetryWait(response));
+        }
+    }
+
+    @Test
+    public void test_getRetryWait_defaultsTo1000MillisWhenHeaderIsMissing() throws Exception {
+        server.createContext("/retry-missing", exchange -> {
+            exchange.sendResponseHeaders(429, -1);
+            exchange.close();
+        });
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final HttpResponse<InputStream> response = sendRaw("/retry-missing");
+        try (InputStream ignored = response.body()) {
+            assertEquals(1000L, fetcher.getRetryWait(response));
+        }
+    }
+
+    @Test
+    public void test_getRetryWait_defaultsTo1000MillisWhenHeaderIsNotNumeric() throws Exception {
+        server.createContext("/retry-non-numeric", exchange -> {
+            exchange.getResponseHeaders().add("Retry-After", "soon");
+            exchange.sendResponseHeaders(429, -1);
+            exchange.close();
+        });
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final HttpResponse<InputStream> response = sendRaw("/retry-non-numeric");
+        try (InputStream ignored = response.body()) {
+            assertEquals(1000L, fetcher.getRetryWait(response));
+        }
+    }
+
+    @Test
+    public void test_getRetryWait_clampsNegativeRetryAfterToZero() throws Exception {
+        server.createContext("/retry-negative", exchange -> {
+            exchange.getResponseHeaders().add("Retry-After", "-5");
+            exchange.sendResponseHeaders(429, -1);
+            exchange.close();
+        });
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final HttpResponse<InputStream> response = sendRaw("/retry-negative");
+        try (InputStream ignored = response.body()) {
+            assertEquals(0L, fetcher.getRetryWait(response));
+        }
+    }
+
+    @Test
+    public void test_open_http_stopsRetryingWhenInterrupted() throws Exception {
+        final AtomicInteger calls = new AtomicInteger();
+        server.createContext("/interrupted", exchange -> {
+            calls.incrementAndGet();
+            exchange.getResponseHeaders().add("Retry-After", "5");
+            exchange.sendResponseHeaders(429, -1);
+            exchange.close();
+        });
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final Thread callingThread = Thread.currentThread();
+        final Thread interrupter = new Thread(() -> {
+            try {
+                Thread.sleep(300);
+            } catch (final InterruptedException ignore) {
+                // nothing to do; the calling thread is interrupted below regardless.
+            }
+            callingThread.interrupt();
+        });
+        interrupter.start();
+        try {
+            try {
+                fetcher.open("http://127.0.0.1:" + port + "/interrupted");
+                fail("IOException should have been thrown.");
+            } catch (final IOException e) {
+                assertTrue("message should mention the location but was: " + e.getMessage(), e.getMessage().contains("/interrupted"));
+            }
+        } finally {
+            interrupter.join();
+            Thread.interrupted();
+        }
+        assertEquals(1, calls.get());
     }
 }

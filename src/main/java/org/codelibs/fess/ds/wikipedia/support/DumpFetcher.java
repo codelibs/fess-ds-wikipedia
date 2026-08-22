@@ -90,7 +90,8 @@ public class DumpFetcher {
      *
      * @param location the http or https URL
      * @return the response body stream
-     * @throws IOException if the request cannot be sent
+     * @throws IOException if the request cannot be sent, or the thread is interrupted while
+     *             waiting to retry
      */
     protected InputStream openHttp(final String location) throws IOException {
         for (int attempt = 0;; attempt++) {
@@ -110,7 +111,7 @@ public class DumpFetcher {
             if ((status == 429 || status == 503) && attempt < maxRetries) {
                 final long waitMillis = getRetryWait(response);
                 logger.warn("HTTP {} from {}. Retrying in {} ms ({}/{}).", status, location, waitMillis, attempt + 1, maxRetries);
-                sleep(waitMillis);
+                sleep(waitMillis, location);
                 continue;
             }
             if (status == 403) {
@@ -139,12 +140,12 @@ public class DumpFetcher {
      * Returns how long to wait before retrying, based on the Retry-After header.
      *
      * @param response the throttled response
-     * @return the wait time in milliseconds
+     * @return the wait time in milliseconds, clamped to a minimum of 0
      */
     protected long getRetryWait(final HttpResponse<InputStream> response) {
         return response.headers().firstValue("Retry-After").map(value -> {
             try {
-                return Long.parseLong(value.trim()) * 1000L;
+                return Math.max(0L, Long.parseLong(value.trim()) * 1000L);
             } catch (final NumberFormatException e) {
                 return DEFAULT_RETRY_WAIT;
             }
@@ -152,15 +153,19 @@ public class DumpFetcher {
     }
 
     /**
-     * Sleeps for the given duration, restoring the interrupt flag if interrupted.
+     * Sleeps for the given duration before retrying a request, aborting the retry loop by
+     * throwing when the thread is interrupted while waiting.
      *
      * @param millis the duration in milliseconds
+     * @param location the location being fetched, named in the exception message if interrupted
+     * @throws IOException if the thread is interrupted while waiting
      */
-    protected void sleep(final long millis) {
+    protected void sleep(final long millis, final String location) throws IOException {
         try {
             Thread.sleep(millis);
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while fetching " + location, e);
         }
     }
 }
