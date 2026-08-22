@@ -19,7 +19,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 
 import org.codelibs.fess.ds.wikipedia.bzip2.CBZip2InputStream;
@@ -34,18 +34,24 @@ import org.xml.sax.InputSource;
  */
 public abstract class WikiXMLParser {
 
-    private URL wikiXMLFile = null;
+    private final String location;
+
+    private final DumpFetcher fetcher;
+
     /** The current page being processed */
     protected WikiPage currentPage = null;
+
     private BufferedReader br;
 
     /**
-     * Constructs a new WikiXMLParser with the specified file URL.
+     * Constructs a new WikiXMLParser for the given dump location.
      *
-     * @param fileName the URL of the Wikipedia XML file to parse
+     * @param location the URL or local path of the Wikipedia XML dump
+     * @param fetcher the fetcher used to open the location
      */
-    public WikiXMLParser(final URL fileName) {
-        wikiXMLFile = fileName;
+    public WikiXMLParser(final String location, final DumpFetcher fetcher) {
+        this.location = location;
+        this.fetcher = fetcher;
     }
 
     /**
@@ -70,24 +76,24 @@ public abstract class WikiXMLParser {
     public abstract WikiPageIterator getIterator();
 
     /**
-     * Creates an InputSource from the Wikipedia XML file, handling different compression formats.
+     * Creates an InputSource from the dump, handling the supported compression formats.
      *
-     * @return An InputSource created from wikiXMLFile
-     * @throws IOException if there is an error reading the file
+     * @return an InputSource for the dump
+     * @throws IOException if the dump cannot be read
      */
     protected InputSource getInputSource() throws IOException {
-        if (wikiXMLFile.toExternalForm().endsWith(".gz")) {
-            br = new BufferedReader(new InputStreamReader(new GZIPInputStream(wikiXMLFile.openStream()), "UTF-8"));
-        } else if (wikiXMLFile.toExternalForm().endsWith(".bz2")) {
-            final InputStream fis = wikiXMLFile.openStream();
-            final byte[] ignoreBytes = new byte[2];
-            fis.read(ignoreBytes); //"B", "Z" bytes from commandline tools
-            final CBZip2InputStream cbZip2InputStream = new CBZip2InputStream(fis);
-            br = new BufferedReader(new InputStreamReader(cbZip2InputStream, "UTF-8"));
+        final InputStream in = fetcher.open(location);
+        if (location.endsWith(".gz")) {
+            br = new BufferedReader(new InputStreamReader(new GZIPInputStream(in), StandardCharsets.UTF_8));
+        } else if (location.endsWith(".bz2")) {
+            final byte[] header = new byte[2];
+            if (in.readNBytes(header, 0, 2) != 2) {
+                throw new IOException("Truncated bzip2 stream: " + location);
+            }
+            br = new BufferedReader(new InputStreamReader(new CBZip2InputStream(in), StandardCharsets.UTF_8));
         } else {
-            br = new BufferedReader(new InputStreamReader(wikiXMLFile.openStream(), "UTF-8"));
+            br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
         }
-
         return new InputSource(br);
     }
 
