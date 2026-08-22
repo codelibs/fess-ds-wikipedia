@@ -16,7 +16,6 @@
 package org.codelibs.fess.ds.wikipedia.support;
 
 import java.io.IOException;
-import java.net.URL;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.ParserConfigurationException;
@@ -42,12 +41,13 @@ public class WikiXMLSAXParser extends WikiXMLParser {
     private int totalEntitySizeLimit = 50000000;
 
     /**
-     * Constructs a new WikiXMLSAXParser with the specified file URL.
+     * Constructs a new WikiXMLSAXParser for the given dump location.
      *
-     * @param fileName the URL of the Wikipedia XML file to parse
+     * @param location the URL or local path of the Wikipedia XML dump
+     * @param fetcher the fetcher used to open the location
      */
-    public WikiXMLSAXParser(final URL fileName) {
-        super(fileName);
+    public WikiXMLSAXParser(final String location, final DumpFetcher fetcher) {
+        super(location, fetcher);
     }
 
     /**

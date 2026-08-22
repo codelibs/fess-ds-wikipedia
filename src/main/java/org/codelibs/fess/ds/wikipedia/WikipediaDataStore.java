@@ -15,8 +15,6 @@
  */
 package org.codelibs.fess.ds.wikipedia;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -26,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.codelibs.core.lang.StringUtil;
 import org.codelibs.fess.Constants;
 import org.codelibs.fess.app.service.FailureUrlService;
 import org.codelibs.fess.crawler.exception.CrawlingAccessException;
@@ -33,10 +32,10 @@ import org.codelibs.fess.crawler.exception.MultipleCrawlingAccessException;
 import org.codelibs.fess.ds.AbstractDataStore;
 import org.codelibs.fess.ds.callback.IndexUpdateCallback;
 import org.codelibs.fess.ds.wikipedia.exception.ParserStoppedException;
+import org.codelibs.fess.ds.wikipedia.support.DumpFetcher;
 import org.codelibs.fess.ds.wikipedia.support.WikiXMLSAXParser;
 import org.codelibs.fess.entity.DataStoreParams;
 import org.codelibs.fess.exception.DataStoreCrawlingException;
-import org.codelibs.fess.exception.DataStoreException;
 import org.codelibs.fess.helper.CrawlerStatsHelper;
 import org.codelibs.fess.helper.CrawlerStatsHelper.StatsAction;
 import org.codelibs.fess.helper.CrawlerStatsHelper.StatsKeyObject;
@@ -61,6 +60,9 @@ public class WikipediaDataStore extends AbstractDataStore {
 
     private static final String DEFAULT_WIKIPEDIA_URL = "http://download.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles.xml.bz2";
 
+    /** The parameter name for the User-Agent header. */
+    protected static final String USER_AGENT_PARAM = "user_agent";
+
     @Override
     protected String getName() {
         return this.getClass().getSimpleName();
@@ -72,14 +74,15 @@ public class WikipediaDataStore extends AbstractDataStore {
         final CrawlerStatsHelper crawlerStatsHelper = ComponentUtil.getCrawlerStatsHelper();
 
         final long readInterval = getReadInterval(paramMap);
-        final URL wikipediaUrl = getWikipediaUrl(paramMap);
         final int limit = Integer.parseInt(paramMap.getAsString("limit", "0"));
         final int totalEntitySizeLimit = Integer.parseInt(paramMap.getAsString("total_entity_size_limit", "100000000"));
         final int maxDigestLength = Integer.parseInt(paramMap.getAsString("max_digest_length", "100"));
         final String scriptType = getScriptType(paramMap);
-        logger.info("url: {}", wikipediaUrl);
+        final String dumpLocation = getDumpLocation(paramMap);
+        final String userAgent = getUserAgent(paramMap);
+        logger.info("url: {}", dumpLocation);
         final AtomicInteger counter = new AtomicInteger();
-        final WikiXMLSAXParser xmlParser = new WikiXMLSAXParser(wikipediaUrl);
+        final WikiXMLSAXParser xmlParser = new WikiXMLSAXParser(dumpLocation, new DumpFetcher(userAgent));
         xmlParser.setTotalEntitySizeLimit(totalEntitySizeLimit);
         xmlParser.setPageCallback(page -> {
             final StatsKeyObject statsKey = new StatsKeyObject(dataConfig.getId() + "#" + page.getId());
@@ -186,12 +189,28 @@ public class WikipediaDataStore extends AbstractDataStore {
         }
     }
 
-    private URL getWikipediaUrl(final DataStoreParams paramMap) {
-        try {
-            return new URL(paramMap.getAsString("url", DEFAULT_WIKIPEDIA_URL));
-        } catch (final MalformedURLException e) {
-            throw new DataStoreException("Could not parse Wikipedia URL.", e);
+    /**
+     * Returns the dump location from the parameters.
+     *
+     * @param paramMap the data store parameters
+     * @return the dump URL or local path
+     */
+    private String getDumpLocation(final DataStoreParams paramMap) {
+        return paramMap.getAsString("url", DEFAULT_WIKIPEDIA_URL);
+    }
+
+    /**
+     * Returns the User-Agent used when downloading the dump.
+     *
+     * @param paramMap the data store parameters
+     * @return the configured User-Agent, or the Fess crawler User-Agent when unset
+     */
+    private String getUserAgent(final DataStoreParams paramMap) {
+        final String userAgent = paramMap.getAsString(USER_AGENT_PARAM);
+        if (StringUtil.isNotBlank(userAgent)) {
+            return userAgent;
         }
+        return ComponentUtil.getFessConfig().getUserAgentName();
     }
 
     private String stripTitle(final String title) {

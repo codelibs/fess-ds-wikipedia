@@ -165,4 +165,34 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
     public void test_dataStoreNotNull() {
         assertNotNull(dataStore);
     }
+
+    @Test
+    public void test_getDumpLocation_returnsTheUrlParameterAsIs() throws Exception {
+        final java.lang.reflect.Method method =
+                WikipediaDataStore.class.getDeclaredMethod("getDumpLocation", org.codelibs.fess.entity.DataStoreParams.class);
+        method.setAccessible(true);
+        final org.codelibs.fess.entity.DataStoreParams params = new org.codelibs.fess.entity.DataStoreParams();
+        params.put("url", "https://example.com/jawiki.xml.bz2");
+        assertEquals("https://example.com/jawiki.xml.bz2", method.invoke(dataStore, params));
+    }
+
+    @Test
+    public void test_getDumpLocation_acceptsAPlainLocalPath() throws Exception {
+        final java.lang.reflect.Method method =
+                WikipediaDataStore.class.getDeclaredMethod("getDumpLocation", org.codelibs.fess.entity.DataStoreParams.class);
+        method.setAccessible(true);
+        final org.codelibs.fess.entity.DataStoreParams params = new org.codelibs.fess.entity.DataStoreParams();
+        params.put("url", "/var/tmp/jawiki.xml.bz2");
+        assertEquals("/var/tmp/jawiki.xml.bz2", method.invoke(dataStore, params));
+    }
+
+    @Test
+    public void test_getUserAgent_usesTheParameterWhenPresent() throws Exception {
+        final java.lang.reflect.Method method =
+                WikipediaDataStore.class.getDeclaredMethod("getUserAgent", org.codelibs.fess.entity.DataStoreParams.class);
+        method.setAccessible(true);
+        final org.codelibs.fess.entity.DataStoreParams params = new org.codelibs.fess.entity.DataStoreParams();
+        params.put("user_agent", "MyBot/1.0 (+https://example.com/bot)");
+        assertEquals("MyBot/1.0 (+https://example.com/bot)", method.invoke(dataStore, params));
+    }
 }
