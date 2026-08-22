@@ -15,9 +15,11 @@
  */
 package org.codelibs.fess.ds.wikipedia.support;
 
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.codelibs.fess.ds.wikipedia.UnitDsTestCase;
 import org.junit.jupiter.api.Test;
@@ -33,7 +35,8 @@ public class WikiXMLSAXParserTest extends UnitDsTestCase {
     }
 
     private String fixtureUrl(final String name) {
-        return getClass().getResource("/fixtures/" + name).toString();
+        final URL url = getClass().getResource("/fixtures/" + name);
+        return Objects.requireNonNull(url, "fixture not found: " + name).toString();
     }
 
     @Test
@@ -60,7 +63,9 @@ public class WikiXMLSAXParserTest extends UnitDsTestCase {
 
     @Test
     public void test_parse_localPathWithoutAScheme() throws Exception {
-        final Path path = Path.of(getClass().getResource("/fixtures/wiki-multistream.xml.bz2").toURI());
+        // Uses the single-stream fixture deliberately: this test is about path handling, not
+        // multistream decompression, so it must not go red for a multistream regression too.
+        final Path path = Path.of(getClass().getResource("/fixtures/wiki-single.xml.bz2").toURI());
         assertEquals(2, parse(path.toAbsolutePath().toString()).size());
     }
 }
