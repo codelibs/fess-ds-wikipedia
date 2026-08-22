@@ -60,8 +60,17 @@ public class WikipediaDataStore extends AbstractDataStore {
 
     private static final String DEFAULT_WIKIPEDIA_URL = "http://download.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles.xml.bz2";
 
+    /** The parameter name for the dump location. */
+    protected static final String URL_PARAM = "url";
+
     /** The parameter name for the User-Agent header. */
     protected static final String USER_AGENT_PARAM = "user_agent";
+
+    /**
+     * Used only when both the {@link #USER_AGENT_PARAM} parameter and the Fess crawler
+     * User-Agent are blank, so that a request is never sent with an empty User-Agent header.
+     */
+    private static final String FALLBACK_USER_AGENT = "Mozilla/5.0 (compatible; Fess; +http://fess.codelibs.org/bot.html)";
 
     @Override
     protected String getName() {
@@ -196,21 +205,26 @@ public class WikipediaDataStore extends AbstractDataStore {
      * @return the dump URL or local path
      */
     private String getDumpLocation(final DataStoreParams paramMap) {
-        return paramMap.getAsString("url", DEFAULT_WIKIPEDIA_URL);
+        return paramMap.getAsString(URL_PARAM, DEFAULT_WIKIPEDIA_URL);
     }
 
     /**
      * Returns the User-Agent used when downloading the dump.
      *
      * @param paramMap the data store parameters
-     * @return the configured User-Agent, or the Fess crawler User-Agent when unset
+     * @return the configured User-Agent, the Fess crawler User-Agent when unset, or a fallback
+     *         literal when both are blank
      */
     private String getUserAgent(final DataStoreParams paramMap) {
         final String userAgent = paramMap.getAsString(USER_AGENT_PARAM);
         if (StringUtil.isNotBlank(userAgent)) {
             return userAgent;
         }
-        return ComponentUtil.getFessConfig().getUserAgentName();
+        final String fessUserAgent = ComponentUtil.getFessConfig().getUserAgentName();
+        if (StringUtil.isNotBlank(fessUserAgent)) {
+            return fessUserAgent;
+        }
+        return FALLBACK_USER_AGENT;
     }
 
     private String stripTitle(final String title) {

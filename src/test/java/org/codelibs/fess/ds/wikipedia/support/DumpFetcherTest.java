@@ -163,6 +163,64 @@ public class DumpFetcherTest extends UnitDsTestCase {
         }
     }
 
+    @Test
+    public void test_open_http_uppercaseSchemeReachesHttpPathAndSendsUserAgent() throws Exception {
+        server.createContext("/uppercase-dump", exchange -> {
+            receivedUserAgents.add(exchange.getRequestHeaders().getFirst("User-Agent"));
+            respond(exchange, "hello");
+        });
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final String uppercaseUrl = "HTTP://127.0.0.1:" + port + "/uppercase-dump";
+        try (InputStream in = fetcher.open(uppercaseUrl)) {
+            assertEquals("hello", new String(in.readAllBytes(), StandardCharsets.UTF_8));
+        }
+        assertEquals(1, receivedUserAgents.size());
+        assertEquals("TestAgent/1.0", receivedUserAgents.get(0));
+    }
+
+    @Test
+    public void test_open_uppercaseFileSchemeReadsTheFile() throws Exception {
+        final Path file = Files.createTempFile("dump-fetcher-", ".txt");
+        try {
+            Files.writeString(file, "uppercase-file-content", StandardCharsets.UTF_8);
+            final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+            final String fileUrl = file.toUri().toString();
+            final String uppercaseFileUrl = "FILE:" + fileUrl.substring("file:".length());
+            try (InputStream in = fetcher.open(uppercaseFileUrl)) {
+                assertEquals("uppercase-file-content", new String(in.readAllBytes(), StandardCharsets.UTF_8));
+            }
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
+    @Test
+    public void test_open_windowsStylePathIsTreatedAsAFilesystemPathNotAScheme() {
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final String windowsPath = "C:\\dumps\\jawiki.xml.bz2";
+        try {
+            fetcher.open(windowsPath);
+            fail("IOException should have been thrown.");
+        } catch (final IOException e) {
+            assertTrue("message should name the windows path but was: " + e.getMessage(), e.getMessage().contains(windowsPath));
+        }
+    }
+
+    @Test
+    public void test_open_relativePathWithNoSchemeStillWorks() throws Exception {
+        final Path cwd = Path.of("").toAbsolutePath();
+        final Path file = Files.createTempFile(cwd, "dump-fetcher-relative-", ".txt");
+        try {
+            Files.writeString(file, "relative-content", StandardCharsets.UTF_8);
+            final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+            try (InputStream in = fetcher.open(file.getFileName().toString())) {
+                assertEquals("relative-content", new String(in.readAllBytes(), StandardCharsets.UTF_8));
+            }
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
     private HttpResponse<InputStream> sendRaw(final String path) throws IOException, InterruptedException {
         final HttpClient client = HttpClient.newHttpClient();
         final HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path)).GET().build();
@@ -211,6 +269,20 @@ public class DumpFetcherTest extends UnitDsTestCase {
     }
 
     @Test
+    public void test_getRetryWait_clampsExcessiveRetryAfterToACeiling() throws Exception {
+        server.createContext("/retry-excessive", exchange -> {
+            exchange.getResponseHeaders().add("Retry-After", "3600");
+            exchange.sendResponseHeaders(429, -1);
+            exchange.close();
+        });
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final HttpResponse<InputStream> response = sendRaw("/retry-excessive");
+        try (InputStream ignored = response.body()) {
+            assertEquals(5L * 60L * 1000L, fetcher.getRetryWait(response));
+        }
+    }
+
+    @Test
     public void test_getRetryWait_clampsNegativeRetryAfterToZero() throws Exception {
         server.createContext("/retry-negative", exchange -> {
             exchange.getResponseHeaders().add("Retry-After", "-5");
@@ -227,23 +299,21 @@ public class DumpFetcherTest extends UnitDsTestCase {
     @Test
     public void test_open_http_stopsRetryingWhenInterrupted() throws Exception {
         final AtomicInteger calls = new AtomicInteger();
+        final Thread callingThread = Thread.currentThread();
         server.createContext("/interrupted", exchange -> {
             calls.incrementAndGet();
             exchange.getResponseHeaders().add("Retry-After", "5");
             exchange.sendResponseHeaders(429, -1);
             exchange.close();
-        });
-        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
-        final Thread callingThread = Thread.currentThread();
-        final Thread interrupter = new Thread(() -> {
-            try {
-                Thread.sleep(300);
-            } catch (final InterruptedException ignore) {
-                // nothing to do; the calling thread is interrupted below regardless.
-            }
+            // Interrupting from inside the handler guarantees the response has already been
+            // received (calls == 1) before the interrupt can be observed by the calling thread,
+            // whether that happens inside HttpClient#send or inside the retry wait. Interrupting
+            // from a timer thread instead is a race: on a slow or loaded runner the interrupt can
+            // land before the handler even runs, making the calls == 1 assertion flaky for a
+            // reason unrelated to the behaviour under test.
             callingThread.interrupt();
         });
-        interrupter.start();
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
         try {
             try {
                 fetcher.open("http://127.0.0.1:" + port + "/interrupted");
@@ -252,7 +322,6 @@ public class DumpFetcherTest extends UnitDsTestCase {
                 assertTrue("message should mention the location but was: " + e.getMessage(), e.getMessage().contains("/interrupted"));
             }
         } finally {
-            interrupter.join();
             Thread.interrupted();
         }
         assertEquals(1, calls.get());

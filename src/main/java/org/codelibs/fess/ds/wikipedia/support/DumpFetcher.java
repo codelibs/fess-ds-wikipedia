@@ -25,6 +25,8 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,6 +44,20 @@ public class DumpFetcher {
     private static final Logger logger = LogManager.getLogger(DumpFetcher.class);
 
     private static final long DEFAULT_RETRY_WAIT = 1000L;
+
+    /** The longest Retry-After wait that is honoured, regardless of what the server sends. */
+    private static final long MAX_RETRY_WAIT = 5L * 60L * 1000L;
+
+    /** The largest error response body that is read before the connection is closed unread. */
+    private static final int MAX_DRAIN_BYTES = 4096;
+
+    /**
+     * Matches an RFC 3986 URI scheme (a leading letter followed by one or more letters, digits,
+     * {@code +}, {@code -} or {@code .}, then a colon) at the start of a location. Requiring at
+     * least two characters before the colon keeps a Windows path such as {@code C:\dumps\x.bz2}
+     * from being misread as a one-letter scheme.
+     */
+    private static final Pattern SCHEME_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9+.-]+:");
 
     private final String userAgent;
 
@@ -71,16 +87,24 @@ public class DumpFetcher {
     /**
      * Opens the given location as a stream.
      *
-     * @param location an http/https URL, a file URL, or a local filesystem path
+     * @param location an http/https URL, a file URL, another scheme's URL (e.g. ftp), or a local
+     *            filesystem path
      * @return the stream; the caller is responsible for closing it
      * @throws IOException if the location cannot be opened
      */
     public InputStream open(final String location) throws IOException {
-        if (location.startsWith("http:") || location.startsWith("https:")) {
-            return openHttp(location);
-        }
-        if (location.startsWith("file:")) {
-            return Files.newInputStream(new File(URI.create(location)).toPath());
+        final Matcher schemeMatcher = SCHEME_PATTERN.matcher(location);
+        if (schemeMatcher.find()) {
+            final String scheme = schemeMatcher.group().substring(0, schemeMatcher.group().length() - 1);
+            if (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https")) {
+                return openHttp(location);
+            }
+            if (scheme.equalsIgnoreCase("file")) {
+                return Files.newInputStream(new File(URI.create(location)).toPath());
+            }
+            // Any other scheme (e.g. ftp:) is resolved the way the previous release did, via
+            // java.net.URL. It never carried a User-Agent, so none is sent here either.
+            return URI.create(location).toURL().openStream();
         }
         return Files.newInputStream(Path.of(location));
     }
@@ -124,13 +148,19 @@ public class DumpFetcher {
     }
 
     /**
-     * Consumes and discards the response body so that the connection can be reused.
+     * Consumes and discards at most a small amount of the response body so that the connection
+     * can be reused, without buffering an arbitrarily large remote error response in memory.
      *
      * @param response the response whose body is discarded
      */
     protected void drain(final HttpResponse<InputStream> response) {
         try (InputStream body = response.body()) {
-            body.readAllBytes();
+            final byte[] buffer = new byte[MAX_DRAIN_BYTES];
+            int total = 0;
+            int read;
+            while (total < MAX_DRAIN_BYTES && (read = body.read(buffer, total, MAX_DRAIN_BYTES - total)) != -1) {
+                total += read;
+            }
         } catch (final IOException e) {
             logger.debug("Failed to drain the response body.", e);
         }
@@ -140,12 +170,12 @@ public class DumpFetcher {
      * Returns how long to wait before retrying, based on the Retry-After header.
      *
      * @param response the throttled response
-     * @return the wait time in milliseconds, clamped to a minimum of 0
+     * @return the wait time in milliseconds, clamped to between 0 and {@link #MAX_RETRY_WAIT}
      */
     protected long getRetryWait(final HttpResponse<InputStream> response) {
         return response.headers().firstValue("Retry-After").map(value -> {
             try {
-                return Math.max(0L, Long.parseLong(value.trim()) * 1000L);
+                return Math.clamp(Long.parseLong(value.trim()) * 1000L, 0L, MAX_RETRY_WAIT);
             } catch (final NumberFormatException e) {
                 return DEFAULT_RETRY_WAIT;
             }

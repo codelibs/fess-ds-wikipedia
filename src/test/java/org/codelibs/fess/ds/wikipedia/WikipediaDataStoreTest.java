@@ -20,6 +20,8 @@ import org.junit.jupiter.api.TestInfo;
 
 import java.lang.reflect.Method;
 
+import org.codelibs.fess.entity.DataStoreParams;
+import org.codelibs.fess.mylasta.direction.FessConfig;
 import org.codelibs.fess.util.ComponentUtil;
 import org.codelibs.fess.ds.wikipedia.UnitDsTestCase;
 
@@ -168,31 +170,88 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
 
     @Test
     public void test_getDumpLocation_returnsTheUrlParameterAsIs() throws Exception {
-        final java.lang.reflect.Method method =
-                WikipediaDataStore.class.getDeclaredMethod("getDumpLocation", org.codelibs.fess.entity.DataStoreParams.class);
+        final Method method = WikipediaDataStore.class.getDeclaredMethod("getDumpLocation", DataStoreParams.class);
         method.setAccessible(true);
-        final org.codelibs.fess.entity.DataStoreParams params = new org.codelibs.fess.entity.DataStoreParams();
+        final DataStoreParams params = new DataStoreParams();
         params.put("url", "https://example.com/jawiki.xml.bz2");
         assertEquals("https://example.com/jawiki.xml.bz2", method.invoke(dataStore, params));
     }
 
     @Test
     public void test_getDumpLocation_acceptsAPlainLocalPath() throws Exception {
-        final java.lang.reflect.Method method =
-                WikipediaDataStore.class.getDeclaredMethod("getDumpLocation", org.codelibs.fess.entity.DataStoreParams.class);
+        final Method method = WikipediaDataStore.class.getDeclaredMethod("getDumpLocation", DataStoreParams.class);
         method.setAccessible(true);
-        final org.codelibs.fess.entity.DataStoreParams params = new org.codelibs.fess.entity.DataStoreParams();
+        final DataStoreParams params = new DataStoreParams();
         params.put("url", "/var/tmp/jawiki.xml.bz2");
         assertEquals("/var/tmp/jawiki.xml.bz2", method.invoke(dataStore, params));
     }
 
     @Test
     public void test_getUserAgent_usesTheParameterWhenPresent() throws Exception {
-        final java.lang.reflect.Method method =
-                WikipediaDataStore.class.getDeclaredMethod("getUserAgent", org.codelibs.fess.entity.DataStoreParams.class);
+        final Method method = WikipediaDataStore.class.getDeclaredMethod("getUserAgent", DataStoreParams.class);
         method.setAccessible(true);
-        final org.codelibs.fess.entity.DataStoreParams params = new org.codelibs.fess.entity.DataStoreParams();
+        final DataStoreParams params = new DataStoreParams();
         params.put("user_agent", "MyBot/1.0 (+https://example.com/bot)");
         assertEquals("MyBot/1.0 (+https://example.com/bot)", method.invoke(dataStore, params));
+    }
+
+    @Test
+    public void test_getUserAgent_fallsBackToTheFessCrawlerUserAgentWhenParameterIsAbsent() throws Exception {
+        final Method method = WikipediaDataStore.class.getDeclaredMethod("getUserAgent", DataStoreParams.class);
+        method.setAccessible(true);
+        final DataStoreParams params = new DataStoreParams();
+        final FessConfig mockConfig = new FessConfig.SimpleImpl() {
+            @Override
+            public String getUserAgentName() {
+                return "Mozilla/5.0 (compatible; Fess/15.8.0; +http://fess.codelibs.org/bot.html)";
+            }
+        };
+        ComponentUtil.setFessConfig(mockConfig);
+        try {
+            assertEquals("Mozilla/5.0 (compatible; Fess/15.8.0; +http://fess.codelibs.org/bot.html)", method.invoke(dataStore, params));
+        } finally {
+            ComponentUtil.setFessConfig(null);
+        }
+    }
+
+    @Test
+    public void test_getUserAgent_fallsBackToTheFessCrawlerUserAgentWhenParameterIsBlank() throws Exception {
+        final Method method = WikipediaDataStore.class.getDeclaredMethod("getUserAgent", DataStoreParams.class);
+        method.setAccessible(true);
+        final DataStoreParams params = new DataStoreParams();
+        params.put("user_agent", "   ");
+        final FessConfig mockConfig = new FessConfig.SimpleImpl() {
+            @Override
+            public String getUserAgentName() {
+                return "Mozilla/5.0 (compatible; Fess/15.8.0; +http://fess.codelibs.org/bot.html)";
+            }
+        };
+        ComponentUtil.setFessConfig(mockConfig);
+        try {
+            assertEquals("Mozilla/5.0 (compatible; Fess/15.8.0; +http://fess.codelibs.org/bot.html)", method.invoke(dataStore, params));
+        } finally {
+            ComponentUtil.setFessConfig(null);
+        }
+    }
+
+    @Test
+    public void test_getUserAgent_fallsBackToALiteralWhenTheFessUserAgentIsBlank() throws Exception {
+        final Method method = WikipediaDataStore.class.getDeclaredMethod("getUserAgent", DataStoreParams.class);
+        method.setAccessible(true);
+        final DataStoreParams params = new DataStoreParams();
+        final FessConfig mockConfig = new FessConfig.SimpleImpl() {
+            @Override
+            public String getUserAgentName() {
+                return "";
+            }
+        };
+        ComponentUtil.setFessConfig(mockConfig);
+        try {
+            final Object result = method.invoke(dataStore, params);
+            assertTrue("fallback User-Agent should not be blank but was: " + result,
+                    result instanceof String && !((String) result).isBlank());
+        } finally {
+            ComponentUtil.setFessConfig(null);
+        }
     }
 }
