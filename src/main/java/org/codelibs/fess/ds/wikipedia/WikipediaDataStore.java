@@ -15,6 +15,7 @@
  */
 package org.codelibs.fess.ds.wikipedia;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -33,7 +34,8 @@ import org.codelibs.fess.ds.AbstractDataStore;
 import org.codelibs.fess.ds.callback.IndexUpdateCallback;
 import org.codelibs.fess.ds.wikipedia.exception.ParserStoppedException;
 import org.codelibs.fess.ds.wikipedia.support.DumpFetcher;
-import org.codelibs.fess.ds.wikipedia.support.WikiXMLSAXParser;
+import org.codelibs.fess.ds.wikipedia.support.WikiDocument;
+import org.codelibs.fess.ds.wikipedia.support.XmlDumpSource;
 import org.codelibs.fess.entity.DataStoreParams;
 import org.codelibs.fess.exception.DataStoreCrawlingException;
 import org.codelibs.fess.helper.CrawlerStatsHelper;
@@ -91,106 +93,96 @@ public class WikipediaDataStore extends AbstractDataStore {
         final String userAgent = getUserAgent(paramMap);
         logger.info("url: {}", dumpLocation);
         final AtomicInteger counter = new AtomicInteger();
-        final WikiXMLSAXParser xmlParser = new WikiXMLSAXParser(dumpLocation, new DumpFetcher(userAgent));
-        xmlParser.setTotalEntitySizeLimit(totalEntitySizeLimit);
-        xmlParser.setPageCallback(page -> {
-            final StatsKeyObject statsKey = new StatsKeyObject(dataConfig.getId() + "#" + page.getId());
-            paramMap.put(Constants.CRAWLER_STATS_KEY, statsKey);
-            final Map<String, Object> dataMap = new HashMap<>(defaultDataMap);
-            final Map<String, Object> resultMap = new LinkedHashMap<>();
-            try {
-                crawlerStatsHelper.begin(statsKey);
-                resultMap.putAll(paramMap.asMap());
-
-                final String title = stripTitle(page.getTitle());
-                final String content = page.getText();
-                resultMap.put("id", page.getId());
-                resultMap.put("title", title);
-                resultMap.put("content", content);
-                resultMap.put("encodedTitle", URLEncoder.encode(title, Constants.UTF_8));
-                resultMap.put("digest", StringUtils.abbreviate(content, maxDigestLength));
-                resultMap.put("format", page.getFormat());
-                resultMap.put("model", page.getModel());
-                resultMap.put("timestamp", page.getTimestamp());
-
-                crawlerStatsHelper.record(statsKey, StatsAction.PREPARED);
-
-                if (logger.isDebugEnabled()) {
-                    for (final Map.Entry<String, Object> entry : resultMap.entrySet()) {
-                        logger.debug("{}={}", entry.getKey(), entry.getValue());
-                    }
-                }
-
-                final Map<String, Object> crawlingContext = new HashMap<>();
-                crawlingContext.put("doc", dataMap);
-                resultMap.put("crawlingContext", crawlingContext);
-                for (final Map.Entry<String, String> entry : scriptMap.entrySet()) {
-                    final Object convertValue = convertValue(scriptType, entry.getValue(), resultMap);
-                    if (convertValue != null) {
-                        dataMap.put(entry.getKey(), convertValue);
-                    }
-                }
-
-                crawlerStatsHelper.record(statsKey, StatsAction.EVALUATED);
-
-                if (logger.isDebugEnabled()) {
-                    for (final Map.Entry<String, Object> entry : dataMap.entrySet()) {
-                        logger.debug("{}={}", entry.getKey(), entry.getValue());
-                    }
-                }
-
-                if (dataMap.get("url") instanceof final String url) {
-                    statsKey.setUrl(url);
-                }
-
-                callback.store(paramMap, dataMap);
-                crawlerStatsHelper.record(statsKey, StatsAction.FINISHED);
-            } catch (final CrawlingAccessException e) {
-                logger.warn("Crawling Access Exception at : {}", dataMap, e);
-
-                Throwable target = e;
-                if (target instanceof final MultipleCrawlingAccessException ex) {
-                    final Throwable[] causes = ex.getCauses();
-                    if (causes.length > 0) {
-                        target = causes[causes.length - 1];
-                    }
-                }
-
-                String errorName;
-                final Throwable cause = target.getCause();
-                if (cause != null) {
-                    errorName = cause.getClass().getCanonicalName();
-                } else {
-                    errorName = target.getClass().getCanonicalName();
-                }
-
-                if (target instanceof final DataStoreCrawlingException dce && dce.aborted()) {
-                    throw new ParserStoppedException(page.getId());
-                }
-
-                final FailureUrlService failureUrlService = ComponentUtil.getComponent(FailureUrlService.class);
-                failureUrlService.store(dataConfig, errorName, page.getId(), target);
-                crawlerStatsHelper.record(statsKey, StatsAction.ACCESS_EXCEPTION);
-            } catch (final Throwable t) {
-                logger.warn("Crawling Access Exception at : {}", dataMap, t);
-                final FailureUrlService failureUrlService = ComponentUtil.getComponent(FailureUrlService.class);
-                failureUrlService.store(dataConfig, t.getClass().getCanonicalName(), page.getId(), t);
-
-                if (readInterval > 0) {
-                    sleep(readInterval);
-                }
-                crawlerStatsHelper.record(statsKey, StatsAction.EXCEPTION);
-            } finally {
-                crawlerStatsHelper.done(statsKey);
-            }
-
-            if (limit > 0 && counter.incrementAndGet() >= limit) {
-                logger.info("Wikipedia crawler is stopped. ({} > {})", counter.get(), limit);
-                throw new ParserStoppedException(page.getId());
-            }
-        });
+        final XmlDumpSource dumpSource = new XmlDumpSource(dumpLocation, new DumpFetcher(userAgent));
+        dumpSource.setTotalEntitySizeLimit(totalEntitySizeLimit);
         try {
-            xmlParser.parse();
+            dumpSource.forEach(document -> {
+                final StatsKeyObject statsKey = new StatsKeyObject(dataConfig.getId() + "#" + document.getId());
+                paramMap.put(Constants.CRAWLER_STATS_KEY, statsKey);
+                final Map<String, Object> dataMap = new HashMap<>(defaultDataMap);
+                final Map<String, Object> resultMap = new LinkedHashMap<>();
+                try {
+                    crawlerStatsHelper.begin(statsKey);
+                    resultMap.putAll(paramMap.asMap());
+
+                    putDocumentValues(resultMap, document, maxDigestLength);
+
+                    crawlerStatsHelper.record(statsKey, StatsAction.PREPARED);
+
+                    if (logger.isDebugEnabled()) {
+                        for (final Map.Entry<String, Object> entry : resultMap.entrySet()) {
+                            logger.debug("{}={}", entry.getKey(), entry.getValue());
+                        }
+                    }
+
+                    final Map<String, Object> crawlingContext = new HashMap<>();
+                    crawlingContext.put("doc", dataMap);
+                    resultMap.put("crawlingContext", crawlingContext);
+                    for (final Map.Entry<String, String> entry : scriptMap.entrySet()) {
+                        final Object convertValue = convertValue(scriptType, entry.getValue(), resultMap);
+                        if (convertValue != null) {
+                            dataMap.put(entry.getKey(), convertValue);
+                        }
+                    }
+
+                    crawlerStatsHelper.record(statsKey, StatsAction.EVALUATED);
+
+                    if (logger.isDebugEnabled()) {
+                        for (final Map.Entry<String, Object> entry : dataMap.entrySet()) {
+                            logger.debug("{}={}", entry.getKey(), entry.getValue());
+                        }
+                    }
+
+                    if (dataMap.get("url") instanceof final String url) {
+                        statsKey.setUrl(url);
+                    }
+
+                    callback.store(paramMap, dataMap);
+                    crawlerStatsHelper.record(statsKey, StatsAction.FINISHED);
+                } catch (final CrawlingAccessException e) {
+                    logger.warn("Crawling Access Exception at : {}", dataMap, e);
+
+                    Throwable target = e;
+                    if (target instanceof final MultipleCrawlingAccessException ex) {
+                        final Throwable[] causes = ex.getCauses();
+                        if (causes.length > 0) {
+                            target = causes[causes.length - 1];
+                        }
+                    }
+
+                    String errorName;
+                    final Throwable cause = target.getCause();
+                    if (cause != null) {
+                        errorName = cause.getClass().getCanonicalName();
+                    } else {
+                        errorName = target.getClass().getCanonicalName();
+                    }
+
+                    if (target instanceof final DataStoreCrawlingException dce && dce.aborted()) {
+                        throw new ParserStoppedException(document.getId());
+                    }
+
+                    final FailureUrlService failureUrlService = ComponentUtil.getComponent(FailureUrlService.class);
+                    failureUrlService.store(dataConfig, errorName, document.getId(), target);
+                    crawlerStatsHelper.record(statsKey, StatsAction.ACCESS_EXCEPTION);
+                } catch (final Throwable t) {
+                    logger.warn("Crawling Access Exception at : {}", dataMap, t);
+                    final FailureUrlService failureUrlService = ComponentUtil.getComponent(FailureUrlService.class);
+                    failureUrlService.store(dataConfig, t.getClass().getCanonicalName(), document.getId(), t);
+
+                    if (readInterval > 0) {
+                        sleep(readInterval);
+                    }
+                    crawlerStatsHelper.record(statsKey, StatsAction.EXCEPTION);
+                } finally {
+                    crawlerStatsHelper.done(statsKey);
+                }
+
+                if (limit > 0 && counter.incrementAndGet() >= limit) {
+                    logger.info("Wikipedia crawler is stopped. ({} > {})", counter.get(), limit);
+                    throw new ParserStoppedException(document.getId());
+                }
+            });
         } catch (final ParserStoppedException e) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Wikipedia crawler is stopped at " + e.getMessage(), e);
@@ -225,6 +217,37 @@ public class WikipediaDataStore extends AbstractDataStore {
             return fessUserAgent;
         }
         return FALLBACK_USER_AGENT;
+    }
+
+    /**
+     * Copies the values a script can reference out of the document.
+     *
+     * @param resultMap the map the script is evaluated against
+     * @param document the page being indexed
+     * @param maxDigestLength the maximum length of the digest
+     * @throws UnsupportedEncodingException if UTF-8 encoding is not supported
+     */
+    protected void putDocumentValues(final Map<String, Object> resultMap, final WikiDocument document, final int maxDigestLength)
+            throws UnsupportedEncodingException {
+        final String title = stripTitle(document.getTitle());
+        final String content = document.getContent();
+        resultMap.put("id", document.getId());
+        resultMap.put("title", title);
+        resultMap.put("content", content);
+        resultMap.put("encodedTitle", URLEncoder.encode(title, Constants.UTF_8));
+        resultMap.put("digest", StringUtils.abbreviate(content, maxDigestLength));
+        resultMap.put("format", document.getFormat());
+        resultMap.put("model", document.getModel());
+        resultMap.put("timestamp", document.getTimestamp());
+        resultMap.put("ns", document.getNamespace());
+        resultMap.put("categories", document.getCategories());
+        resultMap.put("links", document.getLinks());
+        resultMap.put("wikitext", document.getWikitext());
+        resultMap.put("redirect", document.isRedirect());
+        resultMap.put("redirectTitle", document.getRedirectTitle());
+        resultMap.put("stub", document.isStub());
+        resultMap.put("disambiguation", document.isDisambiguation());
+        resultMap.put("contentLength", content == null ? 0 : content.length());
     }
 
     private String stripTitle(final String title) {
