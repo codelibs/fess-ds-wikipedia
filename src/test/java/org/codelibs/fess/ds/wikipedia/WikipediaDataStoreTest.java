@@ -320,4 +320,129 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals(Boolean.TRUE, resultMap.get("disambiguation"));
         assertEquals(4, resultMap.get("contentLength"));
     }
+
+    @Test
+    public void test_putDocumentValues_encodesSpacesAsUnderscores() throws Exception {
+        // "Tokyo+Tower" is a 404 on Wikipedia; "Tokyo_Tower" is the real page.
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("Tokyo Tower");
+        document.setContent("body");
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putDocumentValues(resultMap, document, 100);
+        assertEquals("Tokyo_Tower", resultMap.get("encodedTitle"));
+    }
+
+    @Test
+    public void test_putDocumentValues_percentEncodesTheRest() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("Mercury (planet)");
+        document.setContent("body");
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putDocumentValues(resultMap, document, 100);
+        assertEquals("Mercury_%28planet%29", resultMap.get("encodedTitle"));
+    }
+
+    @Test
+    public void test_isCirrusLocation() throws Exception {
+        assertTrue("a cirrus chunk", dataStore.isCirrusLocation(
+                "https://dumps.wikimedia.org/other/cirrus_search_index/20260816/index_name=jawiki_content/jawiki_content-20260816-00000.json.bz2"));
+        assertTrue("a cirrus directory",
+                dataStore.isCirrusLocation("https://dumps.wikimedia.org/other/cirrus_search_index/20260816/index_name=jawiki_content/"));
+        assertTrue("a plain ndjson chunk", dataStore.isCirrusLocation("/var/tmp/jawiki_content-00000.json.bz2"));
+        assertFalse("an xml dump",
+                dataStore.isCirrusLocation("https://dumps.wikimedia.org/jawiki/latest/jawiki-latest-pages-articles.xml.bz2"));
+    }
+
+    @Test
+    public void test_getSiteHost_derivesFromTheDumpName() throws Exception {
+        assertEquals("ja.wikipedia.org",
+                dataStore.getSiteHost("https://dumps.wikimedia.org/jawiki/latest/jawiki-latest-pages-articles.xml.bz2"));
+        assertEquals("en.wikipedia.org", dataStore.getSiteHost("/var/tmp/enwiki_content-20260816-00000.json.bz2"));
+        assertEquals("ja.wikipedia.org",
+                dataStore.getSiteHost("https://dumps.wikimedia.org/other/cirrus_search_index/20260816/index_name=jawiki_content/"));
+    }
+
+    @Test
+    public void test_getSiteHost_staysSilentWhenItCannotTell() throws Exception {
+        // A sister project is not wikipedia.org, and a guess would produce dead links.
+        assertNull(dataStore.getSiteHost("/var/tmp/jawikibooks_content-00000.json.bz2"));
+        assertNull(dataStore.getSiteHost("/var/tmp/dump.xml.bz2"));
+        assertNull(dataStore.getSiteHost("/home/wiki/dumps/something.xml.bz2"));
+    }
+
+    @Test
+    public void test_getSiteLanguage() throws Exception {
+        assertEquals("ja", dataStore.getSiteLanguage("/var/tmp/jawiki-latest-pages-articles.xml.bz2"));
+        assertNull(dataStore.getSiteLanguage("/var/tmp/dump.xml.bz2"));
+    }
+
+    @Test
+    public void test_putSiteValues_buildsTheArticleUrl() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("Tokyo Tower");
+        document.setContent("body");
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putDocumentValues(resultMap, document, 100);
+        dataStore.putSiteValues(resultMap, document, "ja.wikipedia.org", "ja");
+
+        assertEquals("ja", resultMap.get("lang"));
+        assertEquals("ja.wikipedia.org", resultMap.get("host"));
+        assertEquals("ja.wikipedia.org", resultMap.get("site"));
+        assertEquals("https://ja.wikipedia.org/wiki/Tokyo_Tower", resultMap.get("url"));
+    }
+
+    @Test
+    public void test_putSiteValues_prefersTheLanguageOnTheDocument() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("T");
+        document.setContent("body");
+        document.setLanguage("en");
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putDocumentValues(resultMap, document, 100);
+        dataStore.putSiteValues(resultMap, document, "ja.wikipedia.org", "ja");
+        assertEquals("en", resultMap.get("lang"));
+    }
+
+    @Test
+    public void test_putSiteValues_omitsTheUrlWhenTheHostIsUnknown() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("T");
+        document.setContent("body");
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putDocumentValues(resultMap, document, 100);
+        dataStore.putSiteValues(resultMap, document, null, null);
+        assertNull(resultMap.get("url"));
+        assertNull(resultMap.get("host"));
+    }
+
+    @Test
+    public void test_putCirrusValues() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setOpeningText("A song.");
+        document.setHeadings(java.util.List.of("Overview"));
+        document.setExternalLinks(java.util.List.of("https://example.com/1"));
+        document.setTemplates(java.util.List.of("Template:Infobox"));
+        document.setRedirects(java.util.List.of("Alias"));
+        document.setAuxiliaryText(java.util.List.of("Infobox text"));
+        document.setWeightedTags(java.util.List.of("topic/Music|1000"));
+        document.setWikibaseItem("Q1");
+        document.setIncomingLinks(20);
+        document.setPopularityScore(0.5d);
+        document.setRevisionId("109913677");
+
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putCirrusValues(resultMap, document);
+
+        assertEquals("A song.", resultMap.get("openingText"));
+        assertEquals(java.util.List.of("Overview"), resultMap.get("headings"));
+        assertEquals(java.util.List.of("https://example.com/1"), resultMap.get("externalLinks"));
+        assertEquals(java.util.List.of("Template:Infobox"), resultMap.get("templates"));
+        assertEquals(java.util.List.of("Alias"), resultMap.get("redirects"));
+        assertEquals(java.util.List.of("Infobox text"), resultMap.get("auxiliaryText"));
+        assertEquals(java.util.List.of("topic/Music|1000"), resultMap.get("weightedTags"));
+        assertEquals("Q1", resultMap.get("wikibaseItem"));
+        assertEquals(Integer.valueOf(20), resultMap.get("incomingLinks"));
+        assertEquals(Double.valueOf(0.5d), resultMap.get("popularityScore"));
+        assertEquals("109913677", resultMap.get("revisionId"));
+    }
 }
