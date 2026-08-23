@@ -15,7 +15,6 @@
  */
 package org.codelibs.fess.ds.wikipedia;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -225,16 +224,14 @@ public class WikipediaDataStore extends AbstractDataStore {
      * @param resultMap the map the script is evaluated against
      * @param document the page being indexed
      * @param maxDigestLength the maximum length of the digest
-     * @throws UnsupportedEncodingException if UTF-8 encoding is not supported
      */
-    protected void putDocumentValues(final Map<String, Object> resultMap, final WikiDocument document, final int maxDigestLength)
-            throws UnsupportedEncodingException {
+    protected void putDocumentValues(final Map<String, Object> resultMap, final WikiDocument document, final int maxDigestLength) {
         final String title = stripTitle(document.getTitle());
         final String content = document.getContent();
         resultMap.put("id", document.getId());
         resultMap.put("title", title);
         resultMap.put("content", content);
-        resultMap.put("encodedTitle", URLEncoder.encode(title, Constants.UTF_8));
+        resultMap.put("encodedTitle", URLEncoder.encode(title, Constants.CHARSET_UTF_8));
         resultMap.put("digest", StringUtils.abbreviate(content, maxDigestLength));
         resultMap.put("format", document.getFormat());
         resultMap.put("model", document.getModel());

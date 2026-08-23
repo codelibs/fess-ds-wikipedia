@@ -65,6 +65,9 @@ public class XmlDumpSource implements DumpSource {
         document.setFormat(page.getFormat());
         document.setModel(page.getModel());
         document.setTimestamp(page.getTimestamp());
+        // getCategories() and getLinks() each scan the wikitext with a regex, so every page pays
+        // for two extra passes here. A later filtering task may want to reorder this so pages it
+        // discards do not pay that cost.
         document.setCategories(page.getCategories());
         document.setLinks(page.getLinks());
         document.setRedirect(page.isRedirect());
