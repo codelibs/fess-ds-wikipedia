@@ -24,7 +24,11 @@ import org.codelibs.fess.entity.DataStoreParams;
 import org.codelibs.fess.mylasta.direction.FessConfig;
 import org.codelibs.fess.util.ComponentUtil;
 import org.codelibs.fess.ds.wikipedia.UnitDsTestCase;
+import org.codelibs.fess.ds.wikipedia.support.CirrusIndexDumpSource;
+import org.codelibs.fess.ds.wikipedia.support.DumpFetcher;
+import org.codelibs.fess.ds.wikipedia.support.DumpSource;
 import org.codelibs.fess.ds.wikipedia.support.WikiDocument;
+import org.codelibs.fess.ds.wikipedia.support.XmlDumpSource;
 
 /**
  * Test class for WikipediaDataStore.
@@ -349,6 +353,7 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertTrue("a cirrus directory",
                 dataStore.isCirrusLocation("https://dumps.wikimedia.org/other/cirrus_search_index/20260816/index_name=jawiki_content/"));
         assertTrue("a plain ndjson chunk", dataStore.isCirrusLocation("/var/tmp/jawiki_content-00000.json.bz2"));
+        assertTrue("an uncompressed ndjson chunk", dataStore.isCirrusLocation("/var/tmp/jawiki_content-00000.json"));
         assertFalse("an xml dump",
                 dataStore.isCirrusLocation("https://dumps.wikimedia.org/jawiki/latest/jawiki-latest-pages-articles.xml.bz2"));
     }
@@ -413,6 +418,7 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         dataStore.putSiteValues(resultMap, document, null, null);
         assertNull(resultMap.get("url"));
         assertNull(resultMap.get("host"));
+        assertNull(resultMap.get("site"));
     }
 
     @Test
@@ -444,5 +450,53 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals(Integer.valueOf(20), resultMap.get("incomingLinks"));
         assertEquals(Double.valueOf(0.5d), resultMap.get("popularityScore"));
         assertEquals("109913677", resultMap.get("revisionId"));
+    }
+
+    private String fixtureLocation(final String fixture) {
+        final java.net.URL url = getClass().getResource("/fixtures/" + fixture);
+        java.util.Objects.requireNonNull(url, "fixture not found: " + fixture);
+        return url.toString();
+    }
+
+    @Test
+    public void test_createDumpSource_autoPicksXmlForAnXmlLocation() throws Exception {
+        final DataStoreParams params = new DataStoreParams();
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final DumpSource source = dataStore.createDumpSource(params,
+                "https://dumps.wikimedia.org/jawiki/latest/jawiki-latest-pages-articles.xml.bz2", fetcher, 100);
+        assertTrue("expected an XmlDumpSource but was " + source.getClass(), source instanceof XmlDumpSource);
+    }
+
+    @Test
+    public void test_createDumpSource_autoPicksCirrusForACirrusLocation() throws Exception {
+        // Real fixture so the DumpLocationResolver has something to resolve.
+        final DataStoreParams params = new DataStoreParams();
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final DumpSource source = dataStore.createDumpSource(params, fixtureLocation("cirrus-sample.json"), fetcher, 100);
+        assertTrue("expected a CirrusIndexDumpSource but was " + source.getClass(), source instanceof CirrusIndexDumpSource);
+    }
+
+    @Test
+    public void test_createDumpSource_xmlExplicitlyOverridesACirrusLookingLocation() throws Exception {
+        // source=xml on a location isCirrusLocation would otherwise call cirrus.
+        final DataStoreParams params = new DataStoreParams();
+        params.put("source", "xml");
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final DumpSource source = dataStore.createDumpSource(params, fixtureLocation("cirrus-sample.json"), fetcher, 100);
+        assertTrue("expected an XmlDumpSource but was " + source.getClass(), source instanceof XmlDumpSource);
+    }
+
+    @Test
+    public void test_createDumpSource_cirrusExplicitlyOverridesAnXmlLookingLocation() throws Exception {
+        // source=cirrus on a location isCirrusLocation would otherwise call xml: the case the
+        // ||/&& precedence of the source-selection expression decides. With the wrong grouping
+        // ("cirrus".equals(sourceType) || "auto".equals(sourceType)) && isCirrusLocation(...),
+        // this would incorrectly fall through to XmlDumpSource. Real fixture so the
+        // DumpLocationResolver has something to resolve.
+        final DataStoreParams params = new DataStoreParams();
+        params.put("source", "cirrus");
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final DumpSource source = dataStore.createDumpSource(params, fixtureLocation("wiki-single.xml.bz2"), fetcher, 100);
+        assertTrue("expected a CirrusIndexDumpSource but was " + source.getClass(), source instanceof CirrusIndexDumpSource);
     }
 }

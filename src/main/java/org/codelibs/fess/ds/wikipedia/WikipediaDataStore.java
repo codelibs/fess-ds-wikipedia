@@ -101,27 +101,10 @@ public class WikipediaDataStore extends AbstractDataStore {
         logger.info("url: {}", dumpLocation);
         final AtomicInteger counter = new AtomicInteger();
         final DumpFetcher fetcher = new DumpFetcher(userAgent);
-        final String sourceType = paramMap.getAsString(SOURCE_PARAM, "auto");
-        final boolean cirrus =
-                "cirrus".equalsIgnoreCase(sourceType) || "auto".equalsIgnoreCase(sourceType) && isCirrusLocation(dumpLocation);
+        final boolean cirrus = isCirrusSource(paramMap, dumpLocation);
         final String siteHost = getSiteHost(dumpLocation);
         final String siteLanguage = getSiteLanguage(dumpLocation);
-
-        final DumpSource dumpSource;
-        if (cirrus) {
-            final List<String> locations;
-            try {
-                locations = new DumpLocationResolver(fetcher).resolve(dumpLocation, CIRRUS_SUFFIX);
-            } catch (final IOException e) {
-                throw new DataStoreException("Could not resolve the dump location: " + dumpLocation, e);
-            }
-            logger.info("Reading {} CirrusSearch file(s).", locations.size());
-            dumpSource = new CirrusIndexDumpSource(locations, fetcher);
-        } else {
-            final XmlDumpSource xmlSource = new XmlDumpSource(dumpLocation, fetcher);
-            xmlSource.setTotalEntitySizeLimit(totalEntitySizeLimit);
-            dumpSource = xmlSource;
-        }
+        final DumpSource dumpSource = createDumpSource(paramMap, dumpLocation, fetcher, totalEntitySizeLimit);
         try {
             dumpSource.forEach(document -> {
                 final StatsKeyObject statsKey = new StatsKeyObject(dataConfig.getId() + "#" + document.getId());
@@ -301,6 +284,51 @@ public class WikipediaDataStore extends AbstractDataStore {
     }
 
     /**
+     * Returns whether the configured source should be read as a CirrusSearch dump.
+     *
+     * @param paramMap the data store parameters
+     * @param dumpLocation the dump URL or path
+     * @return true when the {@link #SOURCE_PARAM} parameter forces {@code cirrus}, or is left at
+     *         {@code auto} and the location looks like a CirrusSearch dump
+     */
+    private boolean isCirrusSource(final DataStoreParams paramMap, final String dumpLocation) {
+        final String sourceType = paramMap.getAsString(SOURCE_PARAM, "auto");
+        return "cirrus".equalsIgnoreCase(sourceType) || "auto".equalsIgnoreCase(sourceType) && isCirrusLocation(dumpLocation);
+    }
+
+    /**
+     * Builds the source to read the dump from, selecting the format via the {@link #SOURCE_PARAM}
+     * parameter.
+     * <p>
+     * The CirrusSearch branch expands {@code dumpLocation} through a {@link DumpLocationResolver}.
+     * The XML branch reads {@code dumpLocation} as a single file, unresolved, and applies
+     * {@code totalEntitySizeLimit} to it.
+     * </p>
+     *
+     * @param paramMap the data store parameters
+     * @param dumpLocation the dump URL or path
+     * @param fetcher the fetcher used to open the dump
+     * @param totalEntitySizeLimit the total entity size limit applied to the XML parser
+     * @return the source to read the dump from
+     */
+    protected DumpSource createDumpSource(final DataStoreParams paramMap, final String dumpLocation, final DumpFetcher fetcher,
+            final int totalEntitySizeLimit) {
+        if (isCirrusSource(paramMap, dumpLocation)) {
+            final List<String> locations;
+            try {
+                locations = new DumpLocationResolver(fetcher).resolve(dumpLocation, CIRRUS_SUFFIX);
+            } catch (final IOException e) {
+                throw new DataStoreException("Could not resolve the dump location: " + dumpLocation, e);
+            }
+            logger.info("Reading {} CirrusSearch file(s).", locations.size());
+            return new CirrusIndexDumpSource(locations, fetcher);
+        }
+        final XmlDumpSource xmlSource = new XmlDumpSource(dumpLocation, fetcher);
+        xmlSource.setTotalEntitySizeLimit(totalEntitySizeLimit);
+        return xmlSource;
+    }
+
+    /**
      * Copies the values a script can reference out of the document.
      *
      * @param resultMap the map the script is evaluated against
@@ -331,6 +359,11 @@ public class WikipediaDataStore extends AbstractDataStore {
 
     /**
      * Copies the site-level values a script can reference.
+     * <p>
+     * Must be called after {@link #putDocumentValues(Map, WikiDocument, int)}: it reads the
+     * {@code encodedTitle} key that method puts, and builds a URL ending in the literal
+     * {@code null} when called on its own.
+     * </p>
      *
      * @param resultMap the map the script is evaluated against
      * @param document the page being indexed
