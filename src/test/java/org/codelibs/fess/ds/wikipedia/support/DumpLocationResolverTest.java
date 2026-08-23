@@ -93,6 +93,28 @@ public class DumpLocationResolverTest extends UnitDsTestCase {
     }
 
     @Test
+    public void test_resolve_localDirectoryAcceptsBothCompressedAndPlainJson() throws Exception {
+        // A directory of manually decompressed chunks (a bare .json next to a .json.bz2) must
+        // resolve to both, not fail with "No .json.bz2 file in the directory".
+        final Path dir = Files.createTempDirectory("dump-locations-mixed-");
+        try {
+            Files.writeString(dir.resolve("wiki-00001.json.bz2"), "b", StandardCharsets.UTF_8);
+            Files.writeString(dir.resolve("wiki-00000.json"), "a", StandardCharsets.UTF_8);
+            final List<String> resolved = resolver().resolve(dir.toAbsolutePath().toString(), List.of(".json.bz2", ".json"));
+            assertEquals(2, resolved.size());
+            assertTrue("first should be 00000.json but was " + resolved.get(0), resolved.get(0).endsWith("wiki-00000.json"));
+            assertTrue("second should be 00001.json.bz2 but was " + resolved.get(1), resolved.get(1).endsWith("wiki-00001.json.bz2"));
+        } finally {
+            try (var entries = Files.list(dir)) {
+                for (final Path p : entries.toList()) {
+                    Files.deleteIfExists(p);
+                }
+            }
+            Files.deleteIfExists(dir);
+        }
+    }
+
+    @Test
     public void test_resolve_httpDirectoryListing() throws Exception {
         server.createContext("/dumps/", exchange -> {
             final String html = "<html><body>" //

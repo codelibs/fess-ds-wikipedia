@@ -65,13 +65,26 @@ public class DumpLocationResolver {
      * @throws IOException if a directory cannot be listed or holds no matching file
      */
     public List<String> resolve(final String spec, final String requiredSuffix) throws IOException {
+        return resolve(spec, List.of(requiredSuffix));
+    }
+
+    /**
+     * Expands a location setting into the files to read, in the order to read them.
+     *
+     * @param spec a comma-separated list of files, local directories, and HTTP directory URLs
+     * @param requiredSuffixes the suffixes a file may carry to be picked up from a directory; a
+     *            file matching any of them is included
+     * @return the resolved locations
+     * @throws IOException if a directory cannot be listed or holds no matching file
+     */
+    public List<String> resolve(final String spec, final List<String> requiredSuffixes) throws IOException {
         final List<String> locations = new ArrayList<>();
         for (final String entry : spec.split(",")) {
             final String trimmed = entry.trim();
             if (StringUtil.isBlank(trimmed)) {
                 continue;
             }
-            locations.addAll(resolveEntry(trimmed, requiredSuffix));
+            locations.addAll(resolveEntry(trimmed, requiredSuffixes));
         }
         if (locations.isEmpty()) {
             throw new IOException("No dump file was found for: " + spec);
@@ -83,17 +96,17 @@ public class DumpLocationResolver {
      * Expands one entry of the location setting.
      *
      * @param entry a single file, local directory, or HTTP directory URL
-     * @param requiredSuffix the suffix a file must carry to be picked up from a directory
+     * @param requiredSuffixes the suffixes a file may carry to be picked up from a directory
      * @return the resolved locations for this entry
      * @throws IOException if a directory cannot be listed or holds no matching file
      */
-    protected List<String> resolveEntry(final String entry, final String requiredSuffix) throws IOException {
+    protected List<String> resolveEntry(final String entry, final List<String> requiredSuffixes) throws IOException {
         final File local = new File(entry);
         if (local.isDirectory()) {
-            return listDirectory(local, requiredSuffix);
+            return listDirectory(local, requiredSuffixes);
         }
         if (entry.endsWith("/")) {
-            return listRemoteDirectory(entry, requiredSuffix);
+            return listRemoteDirectory(entry, requiredSuffixes);
         }
         return List.of(entry);
     }
@@ -102,23 +115,23 @@ public class DumpLocationResolver {
      * Lists the matching files of a local directory, sorted by name.
      *
      * @param directory the directory to list
-     * @param requiredSuffix the suffix a file must carry
+     * @param requiredSuffixes the suffixes a file may carry
      * @return the absolute paths of the matching files
      * @throws IOException if the directory holds no matching file
      */
-    protected List<String> listDirectory(final File directory, final String requiredSuffix) throws IOException {
+    protected List<String> listDirectory(final File directory, final List<String> requiredSuffixes) throws IOException {
         final File[] files = directory.listFiles();
         if (files == null) {
             throw new IOException("Could not list the directory: " + directory.getAbsolutePath());
         }
         final List<String> locations = Arrays.stream(files)
                 .filter(File::isFile)
-                .filter(f -> f.getName().endsWith(requiredSuffix))
+                .filter(f -> hasRequiredSuffix(f.getName(), requiredSuffixes))
                 .map(File::getAbsolutePath)
                 .sorted()
                 .toList();
         if (locations.isEmpty()) {
-            throw new IOException("No " + requiredSuffix + " file in the directory: " + directory.getAbsolutePath());
+            throw new IOException("No " + describeSuffixes(requiredSuffixes) + " file in the directory: " + directory.getAbsolutePath());
         }
         return locations;
     }
@@ -127,11 +140,11 @@ public class DumpLocationResolver {
      * Lists the matching files of an HTTP directory index, sorted by name.
      *
      * @param baseUrl the directory URL, ending with a slash
-     * @param requiredSuffix the suffix a file must carry
+     * @param requiredSuffixes the suffixes a file may carry
      * @return the absolute URLs of the matching files
      * @throws IOException if the listing cannot be read or holds no matching file
      */
-    protected List<String> listRemoteDirectory(final String baseUrl, final String requiredSuffix) throws IOException {
+    protected List<String> listRemoteDirectory(final String baseUrl, final List<String> requiredSuffixes) throws IOException {
         final List<String> names = new ArrayList<>();
         try (InputStream in = fetcher.open(baseUrl);
                 BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
@@ -140,19 +153,40 @@ public class DumpLocationResolver {
                 final Matcher matcher = HREF_PATTERN.matcher(line);
                 while (matcher.find()) {
                     final String href = matcher.group(1);
-                    if (href.endsWith(requiredSuffix) && href.indexOf('/') < 0) {
+                    if (hasRequiredSuffix(href, requiredSuffixes) && href.indexOf('/') < 0) {
                         names.add(href);
                     }
                 }
             }
         }
         if (names.isEmpty()) {
-            throw new IOException("No " + requiredSuffix + " file in the listing of: " + baseUrl);
+            throw new IOException("No " + describeSuffixes(requiredSuffixes) + " file in the listing of: " + baseUrl);
         }
         names.sort(Comparator.naturalOrder());
         if (logger.isDebugEnabled()) {
             logger.debug("Resolved {} file(s) from {}", names.size(), baseUrl);
         }
         return names.stream().map(name -> baseUrl + name).toList();
+    }
+
+    /**
+     * Returns whether the name carries any of the required suffixes.
+     *
+     * @param name the file name or href to test
+     * @param requiredSuffixes the suffixes to test against
+     * @return true when the name ends with at least one of the suffixes
+     */
+    private static boolean hasRequiredSuffix(final String name, final List<String> requiredSuffixes) {
+        return requiredSuffixes.stream().anyMatch(name::endsWith);
+    }
+
+    /**
+     * Describes the required suffixes for an error message.
+     *
+     * @param requiredSuffixes the suffixes that were looked for
+     * @return the suffixes joined for a human-readable message
+     */
+    private static String describeSuffixes(final List<String> requiredSuffixes) {
+        return String.join(" or ", requiredSuffixes);
     }
 }
