@@ -236,8 +236,11 @@ public class WikipediaDataStore extends AbstractDataStore {
     /** The parameter name selecting which dump format to read. */
     protected static final String SOURCE_PARAM = "source";
 
-    /** The suffix a CirrusSearch chunk carries. */
+    /** The suffix a compressed CirrusSearch chunk carries. */
     private static final String CIRRUS_SUFFIX = ".json.bz2";
+
+    /** The suffix an already-decompressed CirrusSearch chunk carries. */
+    private static final String CIRRUS_JSON_SUFFIX = ".json";
 
     private static final Pattern WIKI_NAME_PATTERN = Pattern.compile("(?:^|[/=])([a-z][a-z-]{1,11})wiki[-_.]");
 
@@ -248,7 +251,7 @@ public class WikipediaDataStore extends AbstractDataStore {
      * @return true when the location is a CirrusSearch dump
      */
     protected boolean isCirrusLocation(final String location) {
-        return location.contains("cirrus_search_index") || location.endsWith(CIRRUS_SUFFIX) || location.endsWith(".json");
+        return location.contains("cirrus_search_index") || location.endsWith(CIRRUS_SUFFIX) || location.endsWith(CIRRUS_JSON_SUFFIX);
     }
 
     /**
@@ -316,7 +319,7 @@ public class WikipediaDataStore extends AbstractDataStore {
         if (isCirrusSource(paramMap, dumpLocation)) {
             final List<String> locations;
             try {
-                locations = new DumpLocationResolver(fetcher).resolve(dumpLocation, CIRRUS_SUFFIX);
+                locations = new DumpLocationResolver(fetcher).resolve(dumpLocation, List.of(CIRRUS_SUFFIX, CIRRUS_JSON_SUFFIX));
             } catch (final IOException e) {
                 throw new DataStoreException("Could not resolve the dump location: " + dumpLocation, e);
             }
@@ -341,7 +344,7 @@ public class WikipediaDataStore extends AbstractDataStore {
         resultMap.put("id", document.getId());
         resultMap.put("title", title);
         resultMap.put("content", content);
-        resultMap.put("encodedTitle", URLEncoder.encode(title.replace(' ', '_'), Constants.CHARSET_UTF_8));
+        resultMap.put("encodedTitle", encodeTitle(title));
         resultMap.put("digest", StringUtils.abbreviate(content, maxDigestLength));
         resultMap.put("format", document.getFormat());
         resultMap.put("model", document.getModel());
@@ -360,9 +363,9 @@ public class WikipediaDataStore extends AbstractDataStore {
     /**
      * Copies the site-level values a script can reference.
      * <p>
-     * Must be called after {@link #putDocumentValues(Map, WikiDocument, int)}: it reads the
-     * {@code encodedTitle} key that method puts, and builds a URL ending in the literal
-     * {@code null} when called on its own.
+     * Independent of {@link #putDocumentValues(Map, WikiDocument, int)}: it derives the encoded
+     * title from {@code document} itself, so it may be called on its own, before, or after that
+     * method.
      * </p>
      *
      * @param resultMap the map the script is evaluated against
@@ -379,7 +382,7 @@ public class WikipediaDataStore extends AbstractDataStore {
         if (host != null) {
             resultMap.put("host", host);
             resultMap.put("site", host);
-            resultMap.put("url", "https://" + host + "/wiki/" + resultMap.get("encodedTitle"));
+            resultMap.put("url", "https://" + host + "/wiki/" + encodeTitle(stripTitle(document.getTitle())));
         }
     }
 
@@ -410,5 +413,16 @@ public class WikipediaDataStore extends AbstractDataStore {
             sb.deleteCharAt(sb.length() - 1);
         }
         return sb.toString();
+    }
+
+    /**
+     * Encodes a (already-stripped) title for use in an article URL: spaces become underscores,
+     * then the result is percent-encoded.
+     *
+     * @param title the stripped title
+     * @return the encoded title
+     */
+    private String encodeTitle(final String title) {
+        return URLEncoder.encode(title.replace(' ', '_'), Constants.CHARSET_UTF_8);
     }
 }

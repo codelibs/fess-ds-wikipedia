@@ -302,6 +302,7 @@ public class WikiDocument {
 
     /**
      * Returns whether the page is marked as a stub.
+     * Only the XML source populates this flag; on a CirrusSearch record it is always false.
      *
      * @return true when the page is a stub
      */
@@ -320,6 +321,7 @@ public class WikiDocument {
 
     /**
      * Returns whether the page is a disambiguation page.
+     * Only the XML source populates this flag; on a CirrusSearch record it is always false.
      *
      * @return true when the page disambiguates a title
      */

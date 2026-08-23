@@ -422,6 +422,19 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
     }
 
     @Test
+    public void test_putSiteValues_doesNotDependOnPutDocumentValues() throws Exception {
+        // putSiteValues must derive the encoded title itself; it must not read a key that
+        // only putDocumentValues would have put into resultMap.
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("Tokyo Tower");
+        document.setContent("body");
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putSiteValues(resultMap, document, "ja.wikipedia.org", "ja");
+
+        assertEquals("https://ja.wikipedia.org/wiki/Tokyo_Tower", resultMap.get("url"));
+    }
+
+    @Test
     public void test_putCirrusValues() throws Exception {
         final WikiDocument document = new WikiDocument();
         document.setOpeningText("A song.");
