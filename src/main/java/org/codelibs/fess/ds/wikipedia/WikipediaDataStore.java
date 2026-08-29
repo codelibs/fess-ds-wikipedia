@@ -15,11 +15,15 @@
  */
 package org.codelibs.fess.ds.wikipedia;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -32,11 +36,15 @@ import org.codelibs.fess.crawler.exception.MultipleCrawlingAccessException;
 import org.codelibs.fess.ds.AbstractDataStore;
 import org.codelibs.fess.ds.callback.IndexUpdateCallback;
 import org.codelibs.fess.ds.wikipedia.exception.ParserStoppedException;
+import org.codelibs.fess.ds.wikipedia.support.CirrusIndexDumpSource;
 import org.codelibs.fess.ds.wikipedia.support.DumpFetcher;
+import org.codelibs.fess.ds.wikipedia.support.DumpLocationResolver;
+import org.codelibs.fess.ds.wikipedia.support.DumpSource;
 import org.codelibs.fess.ds.wikipedia.support.WikiDocument;
 import org.codelibs.fess.ds.wikipedia.support.XmlDumpSource;
 import org.codelibs.fess.entity.DataStoreParams;
 import org.codelibs.fess.exception.DataStoreCrawlingException;
+import org.codelibs.fess.exception.DataStoreException;
 import org.codelibs.fess.helper.CrawlerStatsHelper;
 import org.codelibs.fess.helper.CrawlerStatsHelper.StatsAction;
 import org.codelibs.fess.helper.CrawlerStatsHelper.StatsKeyObject;
@@ -92,8 +100,11 @@ public class WikipediaDataStore extends AbstractDataStore {
         final String userAgent = getUserAgent(paramMap);
         logger.info("url: {}", dumpLocation);
         final AtomicInteger counter = new AtomicInteger();
-        final XmlDumpSource dumpSource = new XmlDumpSource(dumpLocation, new DumpFetcher(userAgent));
-        dumpSource.setTotalEntitySizeLimit(totalEntitySizeLimit);
+        final DumpFetcher fetcher = new DumpFetcher(userAgent);
+        final boolean cirrus = isCirrusSource(paramMap, dumpLocation);
+        final String siteHost = getSiteHost(dumpLocation);
+        final String siteLanguage = getSiteLanguage(dumpLocation);
+        final DumpSource dumpSource = createDumpSource(paramMap, dumpLocation, fetcher, totalEntitySizeLimit);
         try {
             dumpSource.forEach(document -> {
                 final StatsKeyObject statsKey = new StatsKeyObject(dataConfig.getId() + "#" + document.getId());
@@ -105,6 +116,10 @@ public class WikipediaDataStore extends AbstractDataStore {
                     resultMap.putAll(paramMap.asMap());
 
                     putDocumentValues(resultMap, document, maxDigestLength);
+                    putSiteValues(resultMap, document, siteHost, siteLanguage);
+                    if (cirrus) {
+                        putCirrusValues(resultMap, document);
+                    }
 
                     crawlerStatsHelper.record(statsKey, StatsAction.PREPARED);
 
@@ -218,6 +233,104 @@ public class WikipediaDataStore extends AbstractDataStore {
         return FALLBACK_USER_AGENT;
     }
 
+    /** The parameter name selecting which dump format to read. */
+    protected static final String SOURCE_PARAM = "source";
+
+    /** The suffix a compressed CirrusSearch chunk carries. */
+    private static final String CIRRUS_SUFFIX = ".json.bz2";
+
+    /** The suffix an already-decompressed CirrusSearch chunk carries. */
+    private static final String CIRRUS_JSON_SUFFIX = ".json";
+
+    private static final Pattern WIKI_NAME_PATTERN = Pattern.compile("(?:^|[/=])([a-z][a-z-]{1,11})wiki[-_.]");
+
+    /**
+     * Returns whether the location looks like a CirrusSearch index dump.
+     *
+     * @param location the dump URL or path
+     * @return true when the location is a CirrusSearch dump
+     */
+    protected boolean isCirrusLocation(final String location) {
+        return location.contains("cirrus_search_index") || location.endsWith(CIRRUS_SUFFIX) || location.endsWith(CIRRUS_JSON_SUFFIX);
+    }
+
+    /**
+     * Returns the site host the dump belongs to, derived from its file name.
+     * <p>
+     * Only Wikipedia itself is derived. A sister project such as Wikibooks is left
+     * undecided rather than guessed, because a wrong host produces dead links.
+     * </p>
+     *
+     * @param location the dump URL or path
+     * @return the host, or null when it cannot be determined
+     */
+    protected String getSiteHost(final String location) {
+        final String language = getSiteLanguage(location);
+        if (language == null) {
+            return null;
+        }
+        return language + ".wikipedia.org";
+    }
+
+    /**
+     * Returns the language code the dump belongs to, derived from its file name.
+     *
+     * @param location the dump URL or path
+     * @return the language code, or null when it cannot be determined
+     */
+    protected String getSiteLanguage(final String location) {
+        final Matcher matcher = WIKI_NAME_PATTERN.matcher(location);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    /**
+     * Returns whether the configured source should be read as a CirrusSearch dump.
+     *
+     * @param paramMap the data store parameters
+     * @param dumpLocation the dump URL or path
+     * @return true when the {@link #SOURCE_PARAM} parameter forces {@code cirrus}, or is left at
+     *         {@code auto} and the location looks like a CirrusSearch dump
+     */
+    private boolean isCirrusSource(final DataStoreParams paramMap, final String dumpLocation) {
+        final String sourceType = paramMap.getAsString(SOURCE_PARAM, "auto");
+        return "cirrus".equalsIgnoreCase(sourceType) || "auto".equalsIgnoreCase(sourceType) && isCirrusLocation(dumpLocation);
+    }
+
+    /**
+     * Builds the source to read the dump from, selecting the format via the {@link #SOURCE_PARAM}
+     * parameter.
+     * <p>
+     * The CirrusSearch branch expands {@code dumpLocation} through a {@link DumpLocationResolver}.
+     * The XML branch reads {@code dumpLocation} as a single file, unresolved, and applies
+     * {@code totalEntitySizeLimit} to it.
+     * </p>
+     *
+     * @param paramMap the data store parameters
+     * @param dumpLocation the dump URL or path
+     * @param fetcher the fetcher used to open the dump
+     * @param totalEntitySizeLimit the total entity size limit applied to the XML parser
+     * @return the source to read the dump from
+     */
+    protected DumpSource createDumpSource(final DataStoreParams paramMap, final String dumpLocation, final DumpFetcher fetcher,
+            final int totalEntitySizeLimit) {
+        if (isCirrusSource(paramMap, dumpLocation)) {
+            final List<String> locations;
+            try {
+                locations = new DumpLocationResolver(fetcher).resolve(dumpLocation, List.of(CIRRUS_SUFFIX, CIRRUS_JSON_SUFFIX));
+            } catch (final IOException e) {
+                throw new DataStoreException("Could not resolve the dump location: " + dumpLocation, e);
+            }
+            logger.info("Reading {} CirrusSearch file(s).", locations.size());
+            return new CirrusIndexDumpSource(locations, fetcher);
+        }
+        final XmlDumpSource xmlSource = new XmlDumpSource(dumpLocation, fetcher);
+        xmlSource.setTotalEntitySizeLimit(totalEntitySizeLimit);
+        return xmlSource;
+    }
+
     /**
      * Copies the values a script can reference out of the document.
      *
@@ -231,7 +344,7 @@ public class WikipediaDataStore extends AbstractDataStore {
         resultMap.put("id", document.getId());
         resultMap.put("title", title);
         resultMap.put("content", content);
-        resultMap.put("encodedTitle", URLEncoder.encode(title, Constants.CHARSET_UTF_8));
+        resultMap.put("encodedTitle", encodeTitle(title));
         resultMap.put("digest", StringUtils.abbreviate(content, maxDigestLength));
         resultMap.put("format", document.getFormat());
         resultMap.put("model", document.getModel());
@@ -247,6 +360,52 @@ public class WikipediaDataStore extends AbstractDataStore {
         resultMap.put("contentLength", content == null ? 0 : content.length());
     }
 
+    /**
+     * Copies the site-level values a script can reference.
+     * <p>
+     * Independent of {@link #putDocumentValues(Map, WikiDocument, int)}: it derives the encoded
+     * title from {@code document} itself, so it may be called on its own, before, or after that
+     * method.
+     * </p>
+     *
+     * @param resultMap the map the script is evaluated against
+     * @param document the page being indexed
+     * @param host the site host, or null when it could not be determined
+     * @param language the language code derived from the dump, or null
+     */
+    protected void putSiteValues(final Map<String, Object> resultMap, final WikiDocument document, final String host,
+            final String language) {
+        final String documentLanguage = document.getLanguage() != null ? document.getLanguage() : language;
+        if (documentLanguage != null) {
+            resultMap.put("lang", documentLanguage);
+        }
+        if (host != null) {
+            resultMap.put("host", host);
+            resultMap.put("site", host);
+            resultMap.put("url", "https://" + host + "/wiki/" + encodeTitle(stripTitle(document.getTitle())));
+        }
+    }
+
+    /**
+     * Copies the values only a CirrusSearch dump carries.
+     *
+     * @param resultMap the map the script is evaluated against
+     * @param document the page being indexed
+     */
+    protected void putCirrusValues(final Map<String, Object> resultMap, final WikiDocument document) {
+        resultMap.put("openingText", document.getOpeningText());
+        resultMap.put("headings", document.getHeadings());
+        resultMap.put("externalLinks", document.getExternalLinks());
+        resultMap.put("templates", document.getTemplates());
+        resultMap.put("redirects", document.getRedirects());
+        resultMap.put("auxiliaryText", document.getAuxiliaryText());
+        resultMap.put("weightedTags", document.getWeightedTags());
+        resultMap.put("wikibaseItem", document.getWikibaseItem());
+        resultMap.put("incomingLinks", document.getIncomingLinks());
+        resultMap.put("popularityScore", document.getPopularityScore());
+        resultMap.put("revisionId", document.getRevisionId());
+    }
+
     private String stripTitle(final String title) {
         final StringBuilder sb = new StringBuilder();
         sb.append(title);
@@ -254,5 +413,16 @@ public class WikipediaDataStore extends AbstractDataStore {
             sb.deleteCharAt(sb.length() - 1);
         }
         return sb.toString();
+    }
+
+    /**
+     * Encodes a (already-stripped) title for use in an article URL: spaces become underscores,
+     * then the result is percent-encoded.
+     *
+     * @param title the stripped title
+     * @return the encoded title
+     */
+    private String encodeTitle(final String title) {
+        return URLEncoder.encode(title.replace(' ', '_'), Constants.CHARSET_UTF_8);
     }
 }

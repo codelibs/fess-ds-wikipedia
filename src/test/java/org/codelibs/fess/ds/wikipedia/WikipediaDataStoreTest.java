@@ -24,7 +24,11 @@ import org.codelibs.fess.entity.DataStoreParams;
 import org.codelibs.fess.mylasta.direction.FessConfig;
 import org.codelibs.fess.util.ComponentUtil;
 import org.codelibs.fess.ds.wikipedia.UnitDsTestCase;
+import org.codelibs.fess.ds.wikipedia.support.CirrusIndexDumpSource;
+import org.codelibs.fess.ds.wikipedia.support.DumpFetcher;
+import org.codelibs.fess.ds.wikipedia.support.DumpSource;
 import org.codelibs.fess.ds.wikipedia.support.WikiDocument;
+import org.codelibs.fess.ds.wikipedia.support.XmlDumpSource;
 
 /**
  * Test class for WikipediaDataStore.
@@ -319,5 +323,193 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals(Boolean.TRUE, resultMap.get("stub"));
         assertEquals(Boolean.TRUE, resultMap.get("disambiguation"));
         assertEquals(4, resultMap.get("contentLength"));
+    }
+
+    @Test
+    public void test_putDocumentValues_encodesSpacesAsUnderscores() throws Exception {
+        // "Tokyo+Tower" is a 404 on Wikipedia; "Tokyo_Tower" is the real page.
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("Tokyo Tower");
+        document.setContent("body");
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putDocumentValues(resultMap, document, 100);
+        assertEquals("Tokyo_Tower", resultMap.get("encodedTitle"));
+    }
+
+    @Test
+    public void test_putDocumentValues_percentEncodesTheRest() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("Mercury (planet)");
+        document.setContent("body");
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putDocumentValues(resultMap, document, 100);
+        assertEquals("Mercury_%28planet%29", resultMap.get("encodedTitle"));
+    }
+
+    @Test
+    public void test_isCirrusLocation() throws Exception {
+        assertTrue("a cirrus chunk", dataStore.isCirrusLocation(
+                "https://dumps.wikimedia.org/other/cirrus_search_index/20260816/index_name=jawiki_content/jawiki_content-20260816-00000.json.bz2"));
+        assertTrue("a cirrus directory",
+                dataStore.isCirrusLocation("https://dumps.wikimedia.org/other/cirrus_search_index/20260816/index_name=jawiki_content/"));
+        assertTrue("a plain ndjson chunk", dataStore.isCirrusLocation("/var/tmp/jawiki_content-00000.json.bz2"));
+        assertTrue("an uncompressed ndjson chunk", dataStore.isCirrusLocation("/var/tmp/jawiki_content-00000.json"));
+        assertFalse("an xml dump",
+                dataStore.isCirrusLocation("https://dumps.wikimedia.org/jawiki/latest/jawiki-latest-pages-articles.xml.bz2"));
+    }
+
+    @Test
+    public void test_getSiteHost_derivesFromTheDumpName() throws Exception {
+        assertEquals("ja.wikipedia.org",
+                dataStore.getSiteHost("https://dumps.wikimedia.org/jawiki/latest/jawiki-latest-pages-articles.xml.bz2"));
+        assertEquals("en.wikipedia.org", dataStore.getSiteHost("/var/tmp/enwiki_content-20260816-00000.json.bz2"));
+        assertEquals("ja.wikipedia.org",
+                dataStore.getSiteHost("https://dumps.wikimedia.org/other/cirrus_search_index/20260816/index_name=jawiki_content/"));
+    }
+
+    @Test
+    public void test_getSiteHost_staysSilentWhenItCannotTell() throws Exception {
+        // A sister project is not wikipedia.org, and a guess would produce dead links.
+        assertNull(dataStore.getSiteHost("/var/tmp/jawikibooks_content-00000.json.bz2"));
+        assertNull(dataStore.getSiteHost("/var/tmp/dump.xml.bz2"));
+        assertNull(dataStore.getSiteHost("/home/wiki/dumps/something.xml.bz2"));
+    }
+
+    @Test
+    public void test_getSiteLanguage() throws Exception {
+        assertEquals("ja", dataStore.getSiteLanguage("/var/tmp/jawiki-latest-pages-articles.xml.bz2"));
+        assertNull(dataStore.getSiteLanguage("/var/tmp/dump.xml.bz2"));
+    }
+
+    @Test
+    public void test_putSiteValues_buildsTheArticleUrl() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("Tokyo Tower");
+        document.setContent("body");
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putDocumentValues(resultMap, document, 100);
+        dataStore.putSiteValues(resultMap, document, "ja.wikipedia.org", "ja");
+
+        assertEquals("ja", resultMap.get("lang"));
+        assertEquals("ja.wikipedia.org", resultMap.get("host"));
+        assertEquals("ja.wikipedia.org", resultMap.get("site"));
+        assertEquals("https://ja.wikipedia.org/wiki/Tokyo_Tower", resultMap.get("url"));
+    }
+
+    @Test
+    public void test_putSiteValues_prefersTheLanguageOnTheDocument() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("T");
+        document.setContent("body");
+        document.setLanguage("en");
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putDocumentValues(resultMap, document, 100);
+        dataStore.putSiteValues(resultMap, document, "ja.wikipedia.org", "ja");
+        assertEquals("en", resultMap.get("lang"));
+    }
+
+    @Test
+    public void test_putSiteValues_omitsTheUrlWhenTheHostIsUnknown() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("T");
+        document.setContent("body");
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putDocumentValues(resultMap, document, 100);
+        dataStore.putSiteValues(resultMap, document, null, null);
+        assertNull(resultMap.get("url"));
+        assertNull(resultMap.get("host"));
+        assertNull(resultMap.get("site"));
+    }
+
+    @Test
+    public void test_putSiteValues_doesNotDependOnPutDocumentValues() throws Exception {
+        // putSiteValues must derive the encoded title itself; it must not read a key that
+        // only putDocumentValues would have put into resultMap.
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("Tokyo Tower");
+        document.setContent("body");
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putSiteValues(resultMap, document, "ja.wikipedia.org", "ja");
+
+        assertEquals("https://ja.wikipedia.org/wiki/Tokyo_Tower", resultMap.get("url"));
+    }
+
+    @Test
+    public void test_putCirrusValues() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setOpeningText("A song.");
+        document.setHeadings(java.util.List.of("Overview"));
+        document.setExternalLinks(java.util.List.of("https://example.com/1"));
+        document.setTemplates(java.util.List.of("Template:Infobox"));
+        document.setRedirects(java.util.List.of("Alias"));
+        document.setAuxiliaryText(java.util.List.of("Infobox text"));
+        document.setWeightedTags(java.util.List.of("topic/Music|1000"));
+        document.setWikibaseItem("Q1");
+        document.setIncomingLinks(20);
+        document.setPopularityScore(0.5d);
+        document.setRevisionId("109913677");
+
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putCirrusValues(resultMap, document);
+
+        assertEquals("A song.", resultMap.get("openingText"));
+        assertEquals(java.util.List.of("Overview"), resultMap.get("headings"));
+        assertEquals(java.util.List.of("https://example.com/1"), resultMap.get("externalLinks"));
+        assertEquals(java.util.List.of("Template:Infobox"), resultMap.get("templates"));
+        assertEquals(java.util.List.of("Alias"), resultMap.get("redirects"));
+        assertEquals(java.util.List.of("Infobox text"), resultMap.get("auxiliaryText"));
+        assertEquals(java.util.List.of("topic/Music|1000"), resultMap.get("weightedTags"));
+        assertEquals("Q1", resultMap.get("wikibaseItem"));
+        assertEquals(Integer.valueOf(20), resultMap.get("incomingLinks"));
+        assertEquals(Double.valueOf(0.5d), resultMap.get("popularityScore"));
+        assertEquals("109913677", resultMap.get("revisionId"));
+    }
+
+    private String fixtureLocation(final String fixture) {
+        final java.net.URL url = getClass().getResource("/fixtures/" + fixture);
+        java.util.Objects.requireNonNull(url, "fixture not found: " + fixture);
+        return url.toString();
+    }
+
+    @Test
+    public void test_createDumpSource_autoPicksXmlForAnXmlLocation() throws Exception {
+        final DataStoreParams params = new DataStoreParams();
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final DumpSource source = dataStore.createDumpSource(params,
+                "https://dumps.wikimedia.org/jawiki/latest/jawiki-latest-pages-articles.xml.bz2", fetcher, 100);
+        assertTrue("expected an XmlDumpSource but was " + source.getClass(), source instanceof XmlDumpSource);
+    }
+
+    @Test
+    public void test_createDumpSource_autoPicksCirrusForACirrusLocation() throws Exception {
+        // Real fixture so the DumpLocationResolver has something to resolve.
+        final DataStoreParams params = new DataStoreParams();
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final DumpSource source = dataStore.createDumpSource(params, fixtureLocation("cirrus-sample.json"), fetcher, 100);
+        assertTrue("expected a CirrusIndexDumpSource but was " + source.getClass(), source instanceof CirrusIndexDumpSource);
+    }
+
+    @Test
+    public void test_createDumpSource_xmlExplicitlyOverridesACirrusLookingLocation() throws Exception {
+        // source=xml on a location isCirrusLocation would otherwise call cirrus.
+        final DataStoreParams params = new DataStoreParams();
+        params.put("source", "xml");
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final DumpSource source = dataStore.createDumpSource(params, fixtureLocation("cirrus-sample.json"), fetcher, 100);
+        assertTrue("expected an XmlDumpSource but was " + source.getClass(), source instanceof XmlDumpSource);
+    }
+
+    @Test
+    public void test_createDumpSource_cirrusExplicitlyOverridesAnXmlLookingLocation() throws Exception {
+        // source=cirrus on a location isCirrusLocation would otherwise call xml: the case the
+        // ||/&& precedence of the source-selection expression decides. With the wrong grouping
+        // ("cirrus".equals(sourceType) || "auto".equals(sourceType)) && isCirrusLocation(...),
+        // this would incorrectly fall through to XmlDumpSource. Real fixture so the
+        // DumpLocationResolver has something to resolve.
+        final DataStoreParams params = new DataStoreParams();
+        params.put("source", "cirrus");
+        final DumpFetcher fetcher = new DumpFetcher("TestAgent/1.0");
+        final DumpSource source = dataStore.createDumpSource(params, fixtureLocation("wiki-single.xml.bz2"), fetcher, 100);
+        assertTrue("expected a CirrusIndexDumpSource but was " + source.getClass(), source instanceof CirrusIndexDumpSource);
     }
 }

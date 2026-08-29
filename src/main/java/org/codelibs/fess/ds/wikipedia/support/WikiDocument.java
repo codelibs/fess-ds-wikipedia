@@ -53,6 +53,30 @@ public class WikiDocument {
 
     private boolean disambiguation;
 
+    private String openingText;
+
+    private String language;
+
+    private String revisionId;
+
+    private String wikibaseItem;
+
+    private Double popularityScore;
+
+    private Integer incomingLinks;
+
+    private List<String> headings = Collections.emptyList();
+
+    private List<String> externalLinks = Collections.emptyList();
+
+    private List<String> templates = Collections.emptyList();
+
+    private List<String> redirects = Collections.emptyList();
+
+    private List<String> auxiliaryText = Collections.emptyList();
+
+    private List<String> weightedTags = Collections.emptyList();
+
     /**
      * Creates an empty document.
      */
@@ -278,6 +302,7 @@ public class WikiDocument {
 
     /**
      * Returns whether the page is marked as a stub.
+     * Only the XML source populates this flag; on a CirrusSearch record it is always false.
      *
      * @return true when the page is a stub
      */
@@ -296,6 +321,7 @@ public class WikiDocument {
 
     /**
      * Returns whether the page is a disambiguation page.
+     * Only the XML source populates this flag; on a CirrusSearch record it is always false.
      *
      * @return true when the page disambiguates a title
      */
@@ -310,5 +336,226 @@ public class WikiDocument {
      */
     public void setDisambiguation(final boolean disambiguation) {
         this.disambiguation = disambiguation;
+    }
+
+    /**
+     * Returns the summary paragraph rendered from the page, when the source carries it.
+     *
+     * @return the opening text, or null
+     */
+    public String getOpeningText() {
+        return openingText;
+    }
+
+    /**
+     * Sets the summary paragraph rendered from the page.
+     *
+     * @param openingText the opening text
+     */
+    public void setOpeningText(final String openingText) {
+        this.openingText = openingText;
+    }
+
+    /**
+     * Returns the page's content language, when the source carries it.
+     *
+     * @return the language code, or null
+     */
+    public String getLanguage() {
+        return language;
+    }
+
+    /**
+     * Sets the page's content language.
+     *
+     * @param language the language code
+     */
+    public void setLanguage(final String language) {
+        this.language = language;
+    }
+
+    /**
+     * Returns the identifier of the revision this document was built from.
+     *
+     * @return the revision id, or null
+     */
+    public String getRevisionId() {
+        return revisionId;
+    }
+
+    /**
+     * Sets the identifier of the revision this document was built from.
+     *
+     * @param revisionId the revision id
+     */
+    public void setRevisionId(final String revisionId) {
+        this.revisionId = revisionId;
+    }
+
+    /**
+     * Returns the Wikidata item identifier linked to this page, when the source carries it.
+     *
+     * @return the Wikidata item id, or null
+     */
+    public String getWikibaseItem() {
+        return wikibaseItem;
+    }
+
+    /**
+     * Sets the Wikidata item identifier linked to this page.
+     *
+     * @param wikibaseItem the Wikidata item id
+     */
+    public void setWikibaseItem(final String wikibaseItem) {
+        this.wikibaseItem = wikibaseItem;
+    }
+
+    /**
+     * Returns the search ranking popularity score, when the source carries it.
+     *
+     * @return the popularity score, or null
+     */
+    public Double getPopularityScore() {
+        return popularityScore;
+    }
+
+    /**
+     * Sets the search ranking popularity score.
+     *
+     * @param popularityScore the popularity score
+     */
+    public void setPopularityScore(final Double popularityScore) {
+        this.popularityScore = popularityScore;
+    }
+
+    /**
+     * Returns the number of pages known to link to this one, when the source carries it.
+     *
+     * @return the incoming link count, or null
+     */
+    public Integer getIncomingLinks() {
+        return incomingLinks;
+    }
+
+    /**
+     * Sets the number of pages known to link to this one.
+     *
+     * @param incomingLinks the incoming link count
+     */
+    public void setIncomingLinks(final Integer incomingLinks) {
+        this.incomingLinks = incomingLinks;
+    }
+
+    /**
+     * Returns the section headings on the page.
+     *
+     * @return the headings, never null
+     */
+    public List<String> getHeadings() {
+        return headings;
+    }
+
+    /**
+     * Sets the section headings on the page.
+     *
+     * @param headings the headings; null becomes an empty list
+     */
+    public void setHeadings(final List<String> headings) {
+        this.headings = headings == null ? Collections.emptyList() : headings;
+    }
+
+    /**
+     * Returns the URLs this page links to outside of Wikipedia.
+     *
+     * @return the external links, never null
+     */
+    public List<String> getExternalLinks() {
+        return externalLinks;
+    }
+
+    /**
+     * Sets the URLs this page links to outside of Wikipedia.
+     *
+     * @param externalLinks the external links; null becomes an empty list
+     */
+    public void setExternalLinks(final List<String> externalLinks) {
+        this.externalLinks = externalLinks == null ? Collections.emptyList() : externalLinks;
+    }
+
+    /**
+     * Returns the templates transcluded on the page.
+     *
+     * @return the templates, never null
+     */
+    public List<String> getTemplates() {
+        return templates;
+    }
+
+    /**
+     * Sets the templates transcluded on the page.
+     *
+     * @param templates the templates; null becomes an empty list
+     */
+    public void setTemplates(final List<String> templates) {
+        this.templates = templates == null ? Collections.emptyList() : templates;
+    }
+
+    /**
+     * Returns the titles of the pages that redirect to this one.
+     * <p>
+     * This is not the same as {@link #isRedirect()}, which says whether this page is
+     * itself a redirect. A CirrusSearch content index carries the former and never the
+     * latter, because redirect pages are folded into their target rather than indexed.
+     * </p>
+     *
+     * @return the titles redirecting here, never null
+     */
+    public List<String> getRedirects() {
+        return redirects;
+    }
+
+    /**
+     * Sets the titles of the pages that redirect to this one.
+     *
+     * @param redirects the redirecting titles; null becomes an empty list
+     */
+    public void setRedirects(final List<String> redirects) {
+        this.redirects = redirects == null ? Collections.emptyList() : redirects;
+    }
+
+    /**
+     * Returns text rendered from templates such as infoboxes, kept separate from the body.
+     *
+     * @return the auxiliary text, never null
+     */
+    public List<String> getAuxiliaryText() {
+        return auxiliaryText;
+    }
+
+    /**
+     * Sets the text rendered from templates such as infoboxes.
+     *
+     * @param auxiliaryText the auxiliary text; null becomes an empty list
+     */
+    public void setAuxiliaryText(final List<String> auxiliaryText) {
+        this.auxiliaryText = auxiliaryText == null ? Collections.emptyList() : auxiliaryText;
+    }
+
+    /**
+     * Returns the machine-classified topic tags carried by the page, with their weights.
+     *
+     * @return the weighted tags, never null
+     */
+    public List<String> getWeightedTags() {
+        return weightedTags;
+    }
+
+    /**
+     * Sets the machine-classified topic tags carried by the page.
+     *
+     * @param weightedTags the weighted tags; null becomes an empty list
+     */
+    public void setWeightedTags(final List<String> weightedTags) {
+        this.weightedTags = weightedTags == null ? Collections.emptyList() : weightedTags;
     }
 }
