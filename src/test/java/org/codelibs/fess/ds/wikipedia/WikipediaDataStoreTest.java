@@ -15,6 +15,7 @@
  */
 package org.codelibs.fess.ds.wikipedia;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 import java.lang.reflect.Method;
@@ -53,10 +54,12 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         super.tearDown(testInfo);
     }
 
+    @Test
     public void test_getName() {
         assertEquals("WikipediaDataStore", dataStore.getName());
     }
 
+    @Test
     public void test_stripTitle_withTrailingNewline() throws Exception {
         final Method method = WikipediaDataStore.class.getDeclaredMethod("stripTitle", String.class);
         method.setAccessible(true);
@@ -64,6 +67,7 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals("Test Title", result);
     }
 
+    @Test
     public void test_stripTitle_withMultipleTrailingNewlines() throws Exception {
         final Method method = WikipediaDataStore.class.getDeclaredMethod("stripTitle", String.class);
         method.setAccessible(true);
@@ -71,6 +75,7 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals("Test Title", result);
     }
 
+    @Test
     public void test_stripTitle_withTrailingSpaces() throws Exception {
         final Method method = WikipediaDataStore.class.getDeclaredMethod("stripTitle", String.class);
         method.setAccessible(true);
@@ -78,6 +83,7 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals("Test Title", result);
     }
 
+    @Test
     public void test_stripTitle_withMixedTrailingWhitespace() throws Exception {
         final Method method = WikipediaDataStore.class.getDeclaredMethod("stripTitle", String.class);
         method.setAccessible(true);
@@ -85,6 +91,7 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals("Test Title", result);
     }
 
+    @Test
     public void test_stripTitle_withNoTrailingWhitespace() throws Exception {
         final Method method = WikipediaDataStore.class.getDeclaredMethod("stripTitle", String.class);
         method.setAccessible(true);
@@ -92,6 +99,7 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals("Test Title", result);
     }
 
+    @Test
     public void test_stripTitle_withOnlyWhitespace() throws Exception {
         final Method method = WikipediaDataStore.class.getDeclaredMethod("stripTitle", String.class);
         method.setAccessible(true);
@@ -99,6 +107,7 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals("", result);
     }
 
+    @Test
     public void test_stripTitle_withEmptyString() throws Exception {
         final Method method = WikipediaDataStore.class.getDeclaredMethod("stripTitle", String.class);
         method.setAccessible(true);
@@ -106,6 +115,7 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals("", result);
     }
 
+    @Test
     public void test_stripTitle_withInternalWhitespace() throws Exception {
         final Method method = WikipediaDataStore.class.getDeclaredMethod("stripTitle", String.class);
         method.setAccessible(true);
@@ -113,6 +123,7 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals("Test  Title  With  Spaces", result);
     }
 
+    @Test
     public void test_stripTitle_preservesLeadingWhitespace() throws Exception {
         final Method method = WikipediaDataStore.class.getDeclaredMethod("stripTitle", String.class);
         method.setAccessible(true);
@@ -120,6 +131,7 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals("  Leading spaces", result);
     }
 
+    @Test
     public void test_stripTitle_withSpecialCharacters() throws Exception {
         final Method method = WikipediaDataStore.class.getDeclaredMethod("stripTitle", String.class);
         method.setAccessible(true);
@@ -127,6 +139,7 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals("Title (disambiguation)", result);
     }
 
+    @Test
     public void test_stripTitle_withUnicodeCharacters() throws Exception {
         final Method method = WikipediaDataStore.class.getDeclaredMethod("stripTitle", String.class);
         method.setAccessible(true);
@@ -134,6 +147,7 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals("日本語タイトル", result);
     }
 
+    @Test
     public void test_stripTitle_withMultibyteCharacters() throws Exception {
         final Method method = WikipediaDataStore.class.getDeclaredMethod("stripTitle", String.class);
         method.setAccessible(true);
@@ -141,11 +155,13 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals("Tëst Tïtlé", result);
     }
 
+    @Test
     public void test_constructor() {
         final WikipediaDataStore store = new WikipediaDataStore();
         assertNotNull(store);
     }
 
+    @Test
     public void test_dataStoreNotNull() {
         assertNotNull(dataStore);
     }

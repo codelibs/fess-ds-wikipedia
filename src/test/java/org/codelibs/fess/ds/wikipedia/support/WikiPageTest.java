@@ -15,6 +15,7 @@
  */
 package org.codelibs.fess.ds.wikipedia.support;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 import java.util.Date;
@@ -29,18 +30,21 @@ import org.codelibs.fess.ds.wikipedia.UnitDsTestCase;
  */
 public class WikiPageTest extends UnitDsTestCase {
 
+    @Test
     public void test_setAndGetTitle() {
         final WikiPage page = new WikiPage();
         page.setTitle("Test Title");
         assertEquals("Test Title", page.getTitle());
     }
 
+    @Test
     public void test_setAndGetId() {
         final WikiPage page = new WikiPage();
         page.setId("12345");
         assertEquals("12345", page.getId());
     }
 
+    @Test
     public void test_setAndGetTimestamp() {
         final WikiPage page = new WikiPage();
         final Date timestamp = new Date();
@@ -48,18 +52,21 @@ public class WikiPageTest extends UnitDsTestCase {
         assertEquals(timestamp, page.getTimestamp());
     }
 
+    @Test
     public void test_setAndGetFormat() {
         final WikiPage page = new WikiPage();
         page.setFormat("text/x-wiki");
         assertEquals("text/x-wiki", page.getFormat());
     }
 
+    @Test
     public void test_setAndGetModel() {
         final WikiPage page = new WikiPage();
         page.setModel("wikitext");
         assertEquals("wikitext", page.getModel());
     }
 
+    @Test
     public void test_setWikiText_initializesParser() {
         final WikiPage page = new WikiPage();
         page.setWikiText("Test wiki text");
@@ -67,6 +74,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertEquals("Test wiki text", page.getWikiText());
     }
 
+    @Test
     public void test_isDisambiguationPage_withDisambigInTitle() {
         final WikiPage page = new WikiPage();
         page.setTitle("Test (disambiguation)");
@@ -74,6 +82,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertTrue(page.isDisambiguationPage());
     }
 
+    @Test
     public void test_isDisambiguationPage_withDisambigTag() {
         final WikiPage page = new WikiPage();
         page.setTitle("Test Page");
@@ -81,6 +90,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertTrue(page.isDisambiguationPage());
     }
 
+    @Test
     public void test_isDisambiguationPage_withBoth() {
         final WikiPage page = new WikiPage();
         page.setTitle("Test (disambiguation)");
@@ -88,6 +98,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertTrue(page.isDisambiguationPage());
     }
 
+    @Test
     public void test_isDisambiguationPage_withNeither() {
         final WikiPage page = new WikiPage();
         page.setTitle("Test Page");
@@ -95,6 +106,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertFalse(page.isDisambiguationPage());
     }
 
+    @Test
     public void test_isSpecialPage_withColon() {
         final WikiPage page = new WikiPage();
         page.setTitle("Category:Test");
@@ -102,6 +114,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertTrue(page.isSpecialPage());
     }
 
+    @Test
     public void test_isSpecialPage_withWikipediaNamespace() {
         final WikiPage page = new WikiPage();
         page.setTitle("Wikipedia:Manual of Style");
@@ -109,6 +122,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertTrue(page.isSpecialPage());
     }
 
+    @Test
     public void test_isSpecialPage_withFileNamespace() {
         final WikiPage page = new WikiPage();
         page.setTitle("File:Example.jpg");
@@ -116,6 +130,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertTrue(page.isSpecialPage());
     }
 
+    @Test
     public void test_isSpecialPage_normalPage() {
         final WikiPage page = new WikiPage();
         page.setTitle("Regular Page Title");
@@ -123,42 +138,49 @@ public class WikiPageTest extends UnitDsTestCase {
         assertFalse(page.isSpecialPage());
     }
 
+    @Test
     public void test_isRedirect_withRedirect() {
         final WikiPage page = new WikiPage();
         page.setWikiText("#REDIRECT [[Target Page]]");
         assertTrue(page.isRedirect());
     }
 
+    @Test
     public void test_isRedirect_withoutRedirect() {
         final WikiPage page = new WikiPage();
         page.setWikiText("Regular content");
         assertFalse(page.isRedirect());
     }
 
+    @Test
     public void test_getRedirectPage() {
         final WikiPage page = new WikiPage();
         page.setWikiText("#REDIRECT [[Target Page]]");
         assertEquals("Target Page", page.getRedirectPage());
     }
 
+    @Test
     public void test_getRedirectPage_noRedirect() {
         final WikiPage page = new WikiPage();
         page.setWikiText("Regular content");
         assertNull(page.getRedirectPage());
     }
 
+    @Test
     public void test_isStub_withStub() {
         final WikiPage page = new WikiPage();
         page.setWikiText("Short article {{geo-stub}}");
         assertTrue(page.isStub());
     }
 
+    @Test
     public void test_isStub_withoutStub() {
         final WikiPage page = new WikiPage();
         page.setWikiText("Complete article");
         assertFalse(page.isStub());
     }
 
+    @Test
     public void test_getText_returnsPlainText() {
         final WikiPage page = new WikiPage();
         page.setWikiText("'''Bold''' text");
@@ -168,6 +190,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertTrue(plainText.contains("text"));
     }
 
+    @Test
     public void test_getCategories() {
         final WikiPage page = new WikiPage();
         page.setWikiText("[[Category:Test]] [[Category:Example]]");
@@ -177,6 +200,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertTrue(categories.contains("Example"));
     }
 
+    @Test
     public void test_getCategories_empty() {
         final WikiPage page = new WikiPage();
         page.setWikiText("No categories here");
@@ -184,6 +208,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertEquals(0, categories.size());
     }
 
+    @Test
     public void test_getLinks() {
         final WikiPage page = new WikiPage();
         page.setWikiText("[[Link One]] and [[Link Two]]");
@@ -193,6 +218,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertTrue(links.contains("Link Two"));
     }
 
+    @Test
     public void test_getLinks_empty() {
         final WikiPage page = new WikiPage();
         page.setWikiText("No links here");
@@ -200,6 +226,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertEquals(0, links.size());
     }
 
+    @Test
     public void test_getInfoBox() {
         final WikiPage page = new WikiPage();
         page.setWikiText("{{Infobox person\n|name=John\n}}");
@@ -208,6 +235,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertTrue(infoBox.dumpRaw().contains("Infobox"));
     }
 
+    @Test
     public void test_getInfoBox_noInfoBox() {
         final WikiPage page = new WikiPage();
         page.setWikiText("Regular text");
@@ -215,6 +243,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertNull(infoBox);
     }
 
+    @Test
     public void test_getTranslatedTitle() {
         final WikiPage page = new WikiPage();
         page.setWikiText("[[en:English Title]]\n[[ja:日本語タイトル]]");
@@ -222,12 +251,14 @@ public class WikiPageTest extends UnitDsTestCase {
         assertEquals("日本語タイトル", page.getTranslatedTitle("ja"));
     }
 
+    @Test
     public void test_getTranslatedTitle_noTranslation() {
         final WikiPage page = new WikiPage();
         page.setWikiText("No translations");
         assertNull(page.getTranslatedTitle("en"));
     }
 
+    @Test
     public void test_complexPage_allFeatures() {
         final WikiPage page = new WikiPage();
         page.setTitle("Test Article");
@@ -250,6 +281,7 @@ public class WikiPageTest extends UnitDsTestCase {
         assertNotNull(page.getInfoBox());
     }
 
+    @Test
     public void test_nullSafety() {
         final WikiPage page = new WikiPage();
         assertNull(page.getTitle());

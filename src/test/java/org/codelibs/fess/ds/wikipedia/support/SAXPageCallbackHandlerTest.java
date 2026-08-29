@@ -15,6 +15,7 @@
  */
 package org.codelibs.fess.ds.wikipedia.support;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 import java.io.StringReader;
@@ -34,6 +35,7 @@ import org.xml.sax.InputSource;
  */
 public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
 
+    @Test
     public void test_parseSinglePage() throws Exception {
         final String xml = "<mediawiki>" + "<page>" + "<title>Test Page</title>" + "<id>123</id>" + "<revision>"
                 + "<timestamp>2023-01-15T10:30:00Z</timestamp>" + "<format>text/x-wiki</format>" + "<model>wikitext</model>"
@@ -55,6 +57,7 @@ public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
         assertEquals("Test content", page.getWikiText());
     }
 
+    @Test
     public void test_parseMultiplePages() throws Exception {
         final String xml = "<mediawiki>" + "<page>" + "<title>Page One</title>" + "<id>1</id>" + "<revision>"
                 + "<timestamp>2023-01-01T00:00:00Z</timestamp>" + "<text>Content one</text>" + "</revision>" + "</page>" + "<page>"
@@ -74,6 +77,7 @@ public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
         assertEquals("2", pages.get(1).getId());
     }
 
+    @Test
     public void test_parsePageWithMultilineText() throws Exception {
         final String xml = "<mediawiki>" + "<page>" + "<title>Multiline Page</title>" + "<id>100</id>" + "<revision>" + "<text>Line one\n"
                 + "Line two\n" + "Line three</text>" + "</revision>" + "</page>" + "</mediawiki>";
@@ -91,6 +95,7 @@ public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
         assertTrue(page.getWikiText().contains("Line three"));
     }
 
+    @Test
     public void test_parsePageWithSpecialCharacters() throws Exception {
         final String xml = "<mediawiki>" + "<page>" + "<title>Special &amp; Characters &lt;&gt;</title>" + "<id>999</id>" + "<revision>"
                 + "<text>Content with &amp;amp; and &lt;tags&gt;</text>" + "</revision>" + "</page>" + "</mediawiki>";
@@ -108,6 +113,7 @@ public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
         assertTrue(page.getTitle().contains(">"));
     }
 
+    @Test
     public void test_parsePageWithOnlyRequiredFields() throws Exception {
         final String xml = "<mediawiki>" + "<page>" + "<title>Minimal Page</title>" + "<revision>" + "<text>Minimal content</text>"
                 + "</revision>" + "</page>" + "</mediawiki>";
@@ -124,6 +130,7 @@ public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
         assertEquals("Minimal content", page.getWikiText());
     }
 
+    @Test
     public void test_parsePageWithEmptyText() throws Exception {
         final String xml = "<mediawiki>" + "<page>" + "<title>Empty Page</title>" + "<id>42</id>" + "<revision>" + "<text></text>"
                 + "</revision>" + "</page>" + "</mediawiki>";
@@ -140,6 +147,7 @@ public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
         assertEquals("", page.getWikiText());
     }
 
+    @Test
     public void test_parsePageWithMultipleIds_usesFirst() throws Exception {
         final String xml = "<mediawiki>" + "<page>" + "<title>Test</title>" + "<id>111</id>" + "<revision>" + "<id>222</id>"
                 + "<text>Content</text>" + "</revision>" + "</page>" + "</mediawiki>";
@@ -154,6 +162,7 @@ public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
         assertEquals("111", pages.get(0).getId());
     }
 
+    @Test
     public void test_parseTimestamp_validFormat() throws Exception {
         final String xml = "<mediawiki>" + "<page>" + "<title>Test</title>" + "<revision>" + "<timestamp>2025-03-15T14:45:30Z</timestamp>"
                 + "<text>Content</text>" + "</revision>" + "</page>" + "</mediawiki>";
@@ -168,6 +177,7 @@ public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
         assertNotNull(pages.get(0).getTimestamp());
     }
 
+    @Test
     public void test_parseTimestamp_invalidFormat_logsWarning() throws Exception {
         final String xml = "<mediawiki>" + "<page>" + "<title>Test</title>" + "<revision>" + "<timestamp>invalid-date</timestamp>"
                 + "<text>Content</text>" + "</revision>" + "</page>" + "</mediawiki>";
@@ -182,6 +192,7 @@ public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
         assertNull(pages.get(0).getTimestamp());
     }
 
+    @Test
     public void test_parseFormat() throws Exception {
         final String xml = "<mediawiki>" + "<page>" + "<title>Test</title>" + "<revision>" + "<format>application/json</format>"
                 + "<text>Content</text>" + "</revision>" + "</page>" + "</mediawiki>";
@@ -196,6 +207,7 @@ public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
         assertEquals("application/json", pages.get(0).getFormat());
     }
 
+    @Test
     public void test_parseModel() throws Exception {
         final String xml = "<mediawiki>" + "<page>" + "<title>Test</title>" + "<revision>" + "<model>custom-model</model>"
                 + "<text>Content</text>" + "</revision>" + "</page>" + "</mediawiki>";
@@ -210,6 +222,7 @@ public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
         assertEquals("custom-model", pages.get(0).getModel());
     }
 
+    @Test
     public void test_parseWithWhitespace() throws Exception {
         final String xml = "<mediawiki>" + "<page>" + "<title>  Title with spaces  </title>" + "<id>  456  </id>" + "<revision>"
                 + "<format>  text/x-wiki  </format>" + "<model>  wikitext  </model>" + "<text>Content</text>" + "</revision>" + "</page>"
@@ -229,6 +242,7 @@ public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
         assertEquals("wikitext", page.getModel());
     }
 
+    @Test
     public void test_emptyMediawiki() throws Exception {
         final String xml = "<mediawiki></mediawiki>";
 

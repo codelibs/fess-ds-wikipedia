@@ -15,6 +15,7 @@
  */
 package org.codelibs.fess.ds.wikipedia.support;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 import org.codelibs.fess.ds.wikipedia.UnitDsTestCase;
@@ -26,18 +27,21 @@ import org.codelibs.fess.ds.wikipedia.UnitDsTestCase;
  */
 public class InfoBoxTest extends UnitDsTestCase {
 
+    @Test
     public void test_dumpRaw_returnsOriginalText() {
         final String infoBoxText = "{{Infobox person\n|name=John Doe\n|born=1990\n}}";
         final InfoBox infoBox = new InfoBox(infoBoxText);
         assertEquals(infoBoxText, infoBox.dumpRaw());
     }
 
+    @Test
     public void test_dumpRaw_withSimpleInfoBox() {
         final String infoBoxText = "{{Infobox\n|field=value\n}}";
         final InfoBox infoBox = new InfoBox(infoBoxText);
         assertEquals(infoBoxText, infoBox.dumpRaw());
     }
 
+    @Test
     public void test_dumpRaw_withComplexInfoBox() {
         final String infoBoxText =
                 "{{Infobox country\n" + "|name=Test Country\n" + "|capital=Test City\n" + "|population=1000000\n" + "|area=50000\n" + "}}";
@@ -45,42 +49,49 @@ public class InfoBoxTest extends UnitDsTestCase {
         assertEquals(infoBoxText, infoBox.dumpRaw());
     }
 
+    @Test
     public void test_dumpRaw_withEmptyString() {
         final String infoBoxText = "";
         final InfoBox infoBox = new InfoBox(infoBoxText);
         assertEquals("", infoBox.dumpRaw());
     }
 
+    @Test
     public void test_dumpRaw_withNestedBraces() {
         final String infoBoxText = "{{Infobox test\n|field={{nested content}}\n}}";
         final InfoBox infoBox = new InfoBox(infoBoxText);
         assertEquals(infoBoxText, infoBox.dumpRaw());
     }
 
+    @Test
     public void test_dumpRaw_withSpecialCharacters() {
         final String infoBoxText = "{{Infobox\n|field=value with & special < > characters\n}}";
         final InfoBox infoBox = new InfoBox(infoBoxText);
         assertEquals(infoBoxText, infoBox.dumpRaw());
     }
 
+    @Test
     public void test_dumpRaw_withUnicodeCharacters() {
         final String infoBoxText = "{{Infobox\n|name=日本語\n|description=テスト\n}}";
         final InfoBox infoBox = new InfoBox(infoBoxText);
         assertEquals(infoBoxText, infoBox.dumpRaw());
     }
 
+    @Test
     public void test_dumpRaw_withMultilineValues() {
         final String infoBoxText = "{{Infobox\n" + "|description=This is a\n" + "multiline value\n" + "with several lines\n" + "}}";
         final InfoBox infoBox = new InfoBox(infoBoxText);
         assertEquals(infoBoxText, infoBox.dumpRaw());
     }
 
+    @Test
     public void test_dumpRaw_consistency() {
         final String infoBoxText = "{{Infobox test}}";
         final InfoBox infoBox = new InfoBox(infoBoxText);
         assertEquals(infoBox.dumpRaw(), infoBox.dumpRaw());
     }
 
+    @Test
     public void test_constructor_withNullText() {
         final InfoBox infoBox = new InfoBox(null);
         assertNull(infoBox.dumpRaw());

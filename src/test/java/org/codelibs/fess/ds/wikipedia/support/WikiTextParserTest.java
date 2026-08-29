@@ -15,6 +15,7 @@
  */
 package org.codelibs.fess.ds.wikipedia.support;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import org.codelibs.fess.ds.wikipedia.UnitDsTestCase;
  */
 public class WikiTextParserTest extends UnitDsTestCase {
 
+    @Test
     public void test_isRedirect_withValidRedirect() {
         final String wikiText = "#REDIRECT [[Target Page]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -35,6 +37,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals("Target Page", parser.getRedirectText());
     }
 
+    @Test
     public void test_isRedirect_withCaseInsensitive() {
         final String wikiText = "#redirect [[Another Page]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -42,6 +45,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals("Another Page", parser.getRedirectText());
     }
 
+    @Test
     public void test_isRedirect_withMixedCase() {
         final String wikiText = "#ReDiReCt [[Mixed Case Page]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -49,6 +53,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals("Mixed Case Page", parser.getRedirectText());
     }
 
+    @Test
     public void test_isRedirect_withNoRedirect() {
         final String wikiText = "This is a normal page with no redirect.";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -56,54 +61,63 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertNull(parser.getRedirectText());
     }
 
+    @Test
     public void test_isStub_withStubPattern() {
         final String wikiText = "This is a short article {{geography-stub}}";
         final WikiTextParser parser = new WikiTextParser(wikiText);
         assertTrue(parser.isStub());
     }
 
+    @Test
     public void test_isStub_withDifferentStubType() {
         final String wikiText = "Short bio {{bio-stub}}";
         final WikiTextParser parser = new WikiTextParser(wikiText);
         assertTrue(parser.isStub());
     }
 
+    @Test
     public void test_isStub_withNoStub() {
         final String wikiText = "This is a complete article with no stub marker.";
         final WikiTextParser parser = new WikiTextParser(wikiText);
         assertFalse(parser.isStub());
     }
 
+    @Test
     public void test_isDisambiguationPage_withDisambigTag() {
         final String wikiText = "{{disambig}}";
         final WikiTextParser parser = new WikiTextParser(wikiText);
         assertTrue(parser.isDisambiguationPage());
     }
 
+    @Test
     public void test_isDisambiguationPage_withDisambiguationTag() {
         final String wikiText = "{{disambiguation}}";
         final WikiTextParser parser = new WikiTextParser(wikiText);
         assertTrue(parser.isDisambiguationPage());
     }
 
+    @Test
     public void test_isDisambiguationPage_withCapitalD() {
         final String wikiText = "{{Disambig}}";
         final WikiTextParser parser = new WikiTextParser(wikiText);
         assertTrue(parser.isDisambiguationPage());
     }
 
+    @Test
     public void test_isDisambiguationPage_withCapitalDisambiguation() {
         final String wikiText = "{{Disambiguation}}";
         final WikiTextParser parser = new WikiTextParser(wikiText);
         assertTrue(parser.isDisambiguationPage());
     }
 
+    @Test
     public void test_isDisambiguationPage_withNoDisambig() {
         final String wikiText = "This is a regular page.";
         final WikiTextParser parser = new WikiTextParser(wikiText);
         assertFalse(parser.isDisambiguationPage());
     }
 
+    @Test
     public void test_getCategories_withSingleCategory() {
         final String wikiText = "Some text [[Category:Test Category]] more text";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -112,6 +126,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals("Test Category", categories.get(0));
     }
 
+    @Test
     public void test_getCategories_withMultipleCategories() {
         final String wikiText = "Text [[Category:First]] middle [[Category:Second]] end [[Category:Third]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -122,6 +137,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals("Third", categories.get(2));
     }
 
+    @Test
     public void test_getCategories_withCategoryAndSortKey() {
         final String wikiText = "[[Category:People|Smith, John]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -130,6 +146,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals("People", categories.get(0));
     }
 
+    @Test
     public void test_getCategories_withLowercaseCategory() {
         final String wikiText = "[[category:Lowercase Test]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -138,6 +155,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals("Lowercase Test", categories.get(0));
     }
 
+    @Test
     public void test_getCategories_withNoCategories() {
         final String wikiText = "This text has no categories.";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -145,6 +163,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals(0, categories.size());
     }
 
+    @Test
     public void test_getLinks_withSingleLink() {
         final String wikiText = "This is a link to [[Test Page]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -153,6 +172,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals("Test Page", links.get(0));
     }
 
+    @Test
     public void test_getLinks_withMultipleLinks() {
         final String wikiText = "Links: [[First Page]] and [[Second Page]] and [[Third Page]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -163,6 +183,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals("Third Page", links.get(2));
     }
 
+    @Test
     public void test_getLinks_withPipedLink() {
         final String wikiText = "[[Target Page|Display Text]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -171,6 +192,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals("Target Page", links.get(0));
     }
 
+    @Test
     public void test_getLinks_excludesNamespacedLinks() {
         final String wikiText = "[[Normal Link]] [[File:Image.jpg]] [[Category:Test]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -179,6 +201,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals("Normal Link", links.get(0));
     }
 
+    @Test
     public void test_getLinks_withNoLinks() {
         final String wikiText = "Plain text with no links";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -186,6 +209,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals(0, links.size());
     }
 
+    @Test
     public void test_getPlainText_removesHTMLTags() {
         final String wikiText = "Text with <b>bold</b> and <i>italic</i>";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -196,6 +220,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertFalse(plainText.contains("</i>"));
     }
 
+    @Test
     public void test_getPlainText_removesRefTags() {
         final String wikiText = "Some text<ref>Reference content</ref> more text";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -204,6 +229,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertFalse(plainText.contains("Reference content"));
     }
 
+    @Test
     public void test_getPlainText_removesTemplates() {
         final String wikiText = "Text {{template content}} more text";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -212,6 +238,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertFalse(plainText.contains("template content"));
     }
 
+    @Test
     public void test_getPlainText_removesNamespacedLinks() {
         final String wikiText = "[[File:Image.jpg]] text [[Category:Test]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -220,6 +247,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertFalse(plainText.contains("Category:"));
     }
 
+    @Test
     public void test_getPlainText_convertsSimpleLinks() {
         final String wikiText = "Link to [[Test Page]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -229,6 +257,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertFalse(plainText.contains("]]"));
     }
 
+    @Test
     public void test_getPlainText_removesExternalLinks() {
         final String wikiText = "External [http://example.com link]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -237,6 +266,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertFalse(plainText.contains("http://"));
     }
 
+    @Test
     public void test_getPlainText_removesApostrophes() {
         final String wikiText = "Text with '''bold''' and ''italic''";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -245,6 +275,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertFalse(plainText.contains("''"));
     }
 
+    @Test
     public void test_getPlainText_decodesHTMLEntities() {
         final String wikiText = "Text with &lt;tag&gt; entities";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -258,12 +289,14 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertTrue(plainText.contains("entities"));
     }
 
+    @Test
     public void test_getText_returnsOriginalText() {
         final String wikiText = "Original '''wiki''' text";
         final WikiTextParser parser = new WikiTextParser(wikiText);
         assertEquals(wikiText, parser.getText());
     }
 
+    @Test
     public void test_getInfoBox_withValidInfoBox() {
         final String wikiText = "Text before {{Infobox person\n|name=John Doe\n|born=1990\n}} text after";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -274,6 +307,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertTrue(raw.contains("John Doe"));
     }
 
+    @Test
     public void test_getInfoBox_withNestedBraces() {
         final String wikiText = "{{Infobox test\n|field={{nested content}}\n}}";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -281,6 +315,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertNotNull(infoBox);
     }
 
+    @Test
     public void test_getInfoBox_withNoInfoBox() {
         final String wikiText = "Regular text with no infobox";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -288,6 +323,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertNull(infoBox);
     }
 
+    @Test
     public void test_getInfoBox_caching() {
         final String wikiText = "{{Infobox test\n|data=value\n}}";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -296,6 +332,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertSame(infoBox1, infoBox2);
     }
 
+    @Test
     public void test_getTranslatedTitle_withValidLanguageCode() {
         final String wikiText = "Text\n[[en:English Title]]\nMore text";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -303,6 +340,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals("English Title", translatedTitle);
     }
 
+    @Test
     public void test_getTranslatedTitle_withMultipleLanguages() {
         final String wikiText = "[[en:English]]\n[[fr:French]]\n[[de:German]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -311,6 +349,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals("German", parser.getTranslatedTitle("de"));
     }
 
+    @Test
     public void test_getTranslatedTitle_withNoMatch() {
         final String wikiText = "[[en:English Title]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -318,6 +357,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertNull(translatedTitle);
     }
 
+    @Test
     public void test_getCategories_caching() {
         final String wikiText = "[[Category:Test]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -326,6 +366,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertSame(categories1, categories2);
     }
 
+    @Test
     public void test_getLinks_caching() {
         final String wikiText = "[[Test Link]]";
         final WikiTextParser parser = new WikiTextParser(wikiText);
@@ -334,6 +375,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertSame(links1, links2);
     }
 
+    @Test
     public void test_complexWikiText_withMixedElements() {
         final String wikiText = "#REDIRECT [[Target]]\n" + "{{disambig}}\n" + "{{geography-stub}}\n" + "[[Category:Test]]\n"
                 + "[[Link Page]]\n" + "Regular text";
@@ -346,6 +388,7 @@ public class WikiTextParserTest extends UnitDsTestCase {
         assertEquals(2, parser.getLinks().size());
     }
 
+    @Test
     public void test_emptyWikiText() {
         final String wikiText = "";
         final WikiTextParser parser = new WikiTextParser(wikiText);
