@@ -24,6 +24,7 @@ import org.codelibs.fess.entity.DataStoreParams;
 import org.codelibs.fess.mylasta.direction.FessConfig;
 import org.codelibs.fess.util.ComponentUtil;
 import org.codelibs.fess.ds.wikipedia.UnitDsTestCase;
+import org.codelibs.fess.ds.wikipedia.support.WikiDocument;
 
 /**
  * Test class for WikipediaDataStore.
@@ -253,5 +254,70 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         } finally {
             ComponentUtil.setFessConfig(null);
         }
+    }
+
+    @Test
+    public void test_putDocumentValues_keepsTheExistingKeysUnchanged() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setId("42");
+        document.setTitle("Tokyo Tower");
+        document.setContent("A tall tower in Tokyo.");
+        document.setFormat("text/x-wiki");
+        document.setModel("wikitext");
+        final java.util.Date timestamp = new java.util.Date(0L);
+        document.setTimestamp(timestamp);
+
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putDocumentValues(resultMap, document, 100);
+
+        assertEquals("42", resultMap.get("id"));
+        assertEquals("Tokyo Tower", resultMap.get("title"));
+        assertEquals("A tall tower in Tokyo.", resultMap.get("content"));
+        assertEquals("A tall tower in Tokyo.", resultMap.get("digest"));
+        assertEquals("text/x-wiki", resultMap.get("format"));
+        assertEquals("wikitext", resultMap.get("model"));
+        assertEquals(timestamp, resultMap.get("timestamp"));
+        assertNotNull(resultMap.get("encodedTitle"));
+    }
+
+    @Test
+    public void test_putDocumentValues_abbreviatesTheDigest() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("T");
+        document.setContent("0123456789012345678901234567890123456789");
+
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putDocumentValues(resultMap, document, 10);
+
+        assertEquals("0123456...", resultMap.get("digest"));
+    }
+
+    @Test
+    public void test_putDocumentValues_addsTheNewKeys() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setId("7");
+        document.setTitle("Cats");
+        document.setContent("body");
+        document.setNamespace(14);
+        document.setWikitext("[[Category:Cats]] body");
+        document.setCategories(java.util.List.of("Cats"));
+        document.setLinks(java.util.List.of("Tokyo Tower"));
+        document.setRedirect(true);
+        document.setRedirectTitle("Article");
+        document.setStub(true);
+        document.setDisambiguation(true);
+
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putDocumentValues(resultMap, document, 100);
+
+        assertEquals(14, resultMap.get("ns"));
+        assertEquals(java.util.List.of("Cats"), resultMap.get("categories"));
+        assertEquals(java.util.List.of("Tokyo Tower"), resultMap.get("links"));
+        assertEquals("[[Category:Cats]] body", resultMap.get("wikitext"));
+        assertEquals(Boolean.TRUE, resultMap.get("redirect"));
+        assertEquals("Article", resultMap.get("redirectTitle"));
+        assertEquals(Boolean.TRUE, resultMap.get("stub"));
+        assertEquals(Boolean.TRUE, resultMap.get("disambiguation"));
+        assertEquals(4, resultMap.get("contentLength"));
     }
 }

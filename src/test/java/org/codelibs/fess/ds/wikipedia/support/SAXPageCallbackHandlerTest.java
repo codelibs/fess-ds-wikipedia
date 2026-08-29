@@ -261,4 +261,36 @@ public class SAXPageCallbackHandlerTest extends UnitDsTestCase {
         final InputSource inputSource = new InputSource(new StringReader(xml));
         parser.parse(inputSource, handler);
     }
+
+    @Test
+    public void test_characters_readsTheNamespace() throws Exception {
+        final String xml = "<mediawiki><page><title>T</title><ns>14</ns><id>7</id>"
+                + "<revision><timestamp>2024-01-01T00:00:00Z</timestamp><text>body</text></revision></page></mediawiki>";
+        final List<WikiPage> pages = new ArrayList<>();
+        final SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
+        parser.parse(new InputSource(new StringReader(xml)), new SAXPageCallbackHandler(pages::add));
+        assertEquals(1, pages.size());
+        assertEquals(14, pages.get(0).getNamespace());
+    }
+
+    @Test
+    public void test_characters_defaultsTheNamespaceToZero() throws Exception {
+        final String xml = "<mediawiki><page><title>T</title><id>7</id>"
+                + "<revision><timestamp>2024-01-01T00:00:00Z</timestamp><text>body</text></revision></page></mediawiki>";
+        final List<WikiPage> pages = new ArrayList<>();
+        final SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
+        parser.parse(new InputSource(new StringReader(xml)), new SAXPageCallbackHandler(pages::add));
+        assertEquals(0, pages.get(0).getNamespace());
+    }
+
+    @Test
+    public void test_characters_fallsBackToZeroOnAMalformedNamespace() throws Exception {
+        final String xml = "<mediawiki><page><title>T</title><ns>abc</ns><id>7</id>"
+                + "<revision><timestamp>2024-01-01T00:00:00Z</timestamp><text>body</text></revision></page></mediawiki>";
+        final List<WikiPage> pages = new ArrayList<>();
+        final SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
+        parser.parse(new InputSource(new StringReader(xml)), new SAXPageCallbackHandler(pages::add));
+        assertEquals(1, pages.size());
+        assertEquals(0, pages.get(0).getNamespace());
+    }
 }

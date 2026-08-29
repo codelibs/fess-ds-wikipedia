@@ -39,6 +39,7 @@ public class WikiPage {
     private Date timestamp;
     private String format;
     private String model;
+    private int namespace;
 
     /**
      * Set the page title. This is not intended for direct use.
@@ -241,5 +242,23 @@ public class WikiPage {
      */
     public String getModel() {
         return model;
+    }
+
+    /**
+     * Sets the MediaWiki namespace number of this page.
+     *
+     * @param namespace the namespace number
+     */
+    public void setNamespace(final int namespace) {
+        this.namespace = namespace;
+    }
+
+    /**
+     * Returns the MediaWiki namespace number of this page; 0 is an article.
+     *
+     * @return the namespace number
+     */
+    public int getNamespace() {
+        return namespace;
     }
 }

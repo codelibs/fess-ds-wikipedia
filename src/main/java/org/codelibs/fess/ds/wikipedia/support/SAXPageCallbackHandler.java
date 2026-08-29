@@ -89,6 +89,17 @@ public class SAXPageCallbackHandler extends DefaultHandler {
             currentWikitext = currentWikitext.concat(new String(ch, start, length));
             break;
         }
+        case "ns": {
+            final String value = new String(ch, start, length);
+            if (StringUtil.isNotBlank(value)) {
+                try {
+                    currentPage.setNamespace(Integer.parseInt(value.trim()));
+                } catch (final NumberFormatException e) {
+                    logger.warn("Failed to parse a namespace: {}", value);
+                }
+            }
+            break;
+        }
         case "id": {
             if (StringUtil.isBlank(currentPage.getId())) {
                 final String value = new String(ch, start, length);
