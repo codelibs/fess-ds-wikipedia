@@ -1,0 +1,4 @@
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.11/" version="0.11" xml:lang="ja">
+<page><title>First</title><ns>0</ns><id>1</id><revision><id>101</id><timestamp>2024-01-01T00:00:00Z</timestamp><model>wikitext</model><format>text/x-wiki</format><text>Body one</text></revision></page>
+<page><title>Second</title><ns>0</ns><id>2</id><revision><id>102</id><timestamp>2024-01-02T00:00:00Z</timestamp><model>wikitext</model><format>text/x-wiki</format><text>Body two</text></revision></page>
+</mediawiki>

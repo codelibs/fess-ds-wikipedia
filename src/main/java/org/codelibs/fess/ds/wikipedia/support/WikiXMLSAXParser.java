@@ -15,7 +15,11 @@
  */
 package org.codelibs.fess.ds.wikipedia.support;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.ParserConfigurationException;
@@ -24,50 +28,62 @@ import javax.xml.parsers.SAXParserFactory;
 
 import org.codelibs.core.lang.StringUtil;
 import org.codelibs.fess.exception.DataStoreException;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 /**
- * A SAX Parser for Wikipedia XML dumps.
+ * A SAX parser for Wikipedia XML dumps.
  *
- * @author Jason Smith
  * @see <a href="https://github.com/elastic/elasticsearch-river-wikipedia">Wikipedia River Plugin for Elasticsearch</a>
  */
-public class WikiXMLSAXParser extends WikiXMLParser {
+public class WikiXMLSAXParser {
 
     private static final String TOTAL_ENTITY_SIZE_LIMIT = "http://www.oracle.com/xml/jaxp/properties/totalEntitySizeLimit";
 
-    private PageCallbackHandler pageHandler = null;
+    private final String location;
+
+    private final DumpFetcher fetcher;
+
+    private PageCallbackHandler pageHandler;
 
     private int totalEntitySizeLimit = 50000000;
 
     /**
-     * Constructs a new WikiXMLSAXParser for the given dump location.
+     * Constructs a parser for the dump at the given location.
      *
      * @param location the URL or local path of the Wikipedia XML dump
      * @param fetcher the fetcher used to open the location
      */
     public WikiXMLSAXParser(final String location, final DumpFetcher fetcher) {
-        super(location, fetcher);
+        this.location = location;
+        this.fetcher = fetcher;
     }
 
     /**
-     * Set a callback handler. The callback is executed every time a
-     * page instance is detected in the stream. Custom handlers are
-     * implementations of {@link PageCallbackHandler}
+     * Sets a callback handler that is executed for every page element in the stream.
      *
-     * @param handler the callback handler to be executed for each page
+     * @param handler the callback handler
      */
-    @Override
     public void setPageCallback(final PageCallbackHandler handler) {
         pageHandler = handler;
     }
 
     /**
-     * The main parse method.
+     * Sets the total entity size limit applied to the XML parser.
+     *
+     * @param totalEntitySizeLimit the maximum total size of all entities in bytes
      */
-    @Override
+    public void setTotalEntitySizeLimit(final int totalEntitySizeLimit) {
+        this.totalEntitySizeLimit = totalEntitySizeLimit;
+    }
+
+    /**
+     * Parses the dump, invoking the page callback for every page element.
+     */
     public void parse() {
-        try {
+        try (InputStream in = fetcher.open(location);
+                InputStream decompressed = CompressedStreamFactory.open(in);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(decompressed, StandardCharsets.UTF_8))) {
             final SAXParserFactory factory = SAXParserFactory.newInstance();
             factory.setFeature(org.codelibs.fess.crawler.Constants.FEATURE_SECURE_PROCESSING, true);
             factory.setFeature(org.codelibs.fess.crawler.Constants.FEATURE_EXTERNAL_GENERAL_ENTITIES, false);
@@ -76,30 +92,9 @@ public class WikiXMLSAXParser extends WikiXMLParser {
             parser.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, StringUtil.EMPTY);
             parser.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, StringUtil.EMPTY);
             parser.setProperty(TOTAL_ENTITY_SIZE_LIMIT, totalEntitySizeLimit);
-            parser.parse(getInputSource(), new SAXPageCallbackHandler(pageHandler));
+            parser.parse(new InputSource(reader), new SAXPageCallbackHandler(pageHandler));
         } catch (ParserConfigurationException | IOException | SAXException e) {
-            throw new DataStoreException("Could not parse wikipedia file.", e);
+            throw new DataStoreException("Could not parse wikipedia file: " + location, e);
         }
-    }
-
-    /**
-     * This parser is event driven, so it
-     * can't provide a page iterator.
-     */
-    @Override
-    public WikiPageIterator getIterator() {
-        if (!(pageHandler instanceof IteratorHandler)) {
-            throw new DataStoreException("Custom page callback found. Will not iterate.");
-        }
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * Sets the total entity size limit for XML parsing security.
-     *
-     * @param totalEntitySizeLimit the maximum total size of all entities in bytes
-     */
-    public void setTotalEntitySizeLimit(final int totalEntitySizeLimit) {
-        this.totalEntitySizeLimit = totalEntitySizeLimit;
     }
 }
