@@ -290,6 +290,40 @@ public class WikiTextParserTest extends UnitDsTestCase {
     }
 
     @Test
+    public void test_getPlainText_removesSectionHeaderMarkup() {
+        final String wikiText = "Intro text\n== Hosting ==\nMore text\n=== Details ===\nEven more";
+        final WikiTextParser parser = new WikiTextParser(wikiText);
+        final String plainText = parser.getPlainText();
+        assertFalse(plainText.contains("=="));
+        assertTrue(plainText.contains("Hosting"));
+        assertTrue(plainText.contains("Details"));
+    }
+
+    @Test
+    public void test_getPlainText_removesListMarkers() {
+        final String wikiText = "== Hosting ==\n* VM at provider\n** Apache\n# Step one\n: Indented note";
+        final WikiTextParser parser = new WikiTextParser(wikiText);
+        final String plainText = parser.getPlainText();
+        assertFalse(plainText.contains("* "));
+        assertFalse(plainText.contains("# "));
+        assertTrue(plainText.contains("VM at provider"));
+        assertTrue(plainText.contains("Apache"));
+        assertTrue(plainText.contains("Step one"));
+        assertTrue(plainText.contains("Indented note"));
+    }
+
+    @Test
+    public void test_getPlainText_convertsPipedLinksToDisplayText() {
+        final String wikiText = "See [[Target Page|the target]] for details";
+        final WikiTextParser parser = new WikiTextParser(wikiText);
+        final String plainText = parser.getPlainText();
+        assertTrue(plainText.contains("the target"));
+        assertFalse(plainText.contains("Target Page"));
+        assertFalse(plainText.contains("[["));
+        assertFalse(plainText.contains("|"));
+    }
+
+    @Test
     public void test_getText_returnsOriginalText() {
         final String wikiText = "Original '''wiki''' text";
         final WikiTextParser parser = new WikiTextParser(wikiText);

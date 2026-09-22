@@ -157,12 +157,20 @@ public class WikiTextParser {
     public String getPlainText() {
         String text = wikiText.replace("&gt;", ">");
         text = text.replace("&lt;", "<");
-        text = text.replaceAll("<ref>.*?</ref>", " ");
+        text = text.replaceAll("<!--.*?-->", " ");
+        // <ref> commonly carries attributes (name=, group=) or is self-closing; the
+        // original pattern only matched the bare <ref>...</ref> form.
+        text = text.replaceAll("<ref[^>]*?/>", " ");
+        text = text.replaceAll("<ref[^>]*?>.*?</ref>", " ");
         text = text.replaceAll("</?.*?>", " ");
         text = text.replaceAll("\\{\\{.*?\\}\\}", " ");
+        // Section headers ("== Heading ==", any level) keep their text but lose the '=' markup.
+        text = text.replaceAll("(?m)^\\s*=+\\s*(.*?)\\s*=+\\s*$", "$1\n");
+        // Bullet/numbered/definition list markers ("*", "#", ":", ";") at the start of a line.
+        text = text.replaceAll("(?m)^[ \\t]*[*#:;]+\\s*", "");
         text = text.replaceAll("\\[\\[.*?:.*?\\]\\]", " ");
-        text = text.replaceAll("\\[\\[(.*?)\\]\\]", "$1");
-        text = text.replaceAll("\\s(.*?)\\|(\\w+\\s)", " $2");
+        // "[[Link]]" -> "Link"; "[[Link|Text]]" (and multi-pipe forms) -> the text after the last "|".
+        text = text.replaceAll("\\[\\[(?:[^\\]]*\\|)?([^|\\]]+)\\]\\]", "$1");
         text = text.replaceAll("\\[.*?\\]", " ");
         return text.replaceAll("\\'+", "");
     }
