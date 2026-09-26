@@ -93,6 +93,8 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
 
     private static final String CLOSING_PUNCTUATION = ",.;:!?)]}%»”’";
 
+    private static final String OPENING_PUNCTUATION = "([{«„“‘";
+
     /** Tag extensions whose body is literal text (code), kept as is. */
     private static final Set<String> LITERAL_TAG_EXTENSIONS = Set.of("pre", "source", "syntaxhighlight");
 
@@ -118,8 +120,8 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
 
     /**
      * A space requested by removed or replaced markup (a template, a dropped tag extension): it
-     * separates words but is left out before closing punctuation, so "Deutschland}};" doesn't
-     * become "Deutschland ;".
+     * separates words but is left out before closing and after opening punctuation, so
+     * "Deutschland}};" doesn't become "Deutschland ;" nor "({{lang|de|Haus}}" "( de Haus".
      */
     private boolean softSpace;
 
@@ -384,9 +386,16 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
             newline();
         }
         // Argument values are unparsed wikitext; parameter names ("title=") are not prose.
+        boolean first = true;
         for (final WtNode arg : n.getArgs()) {
             if (arg instanceof final WtTemplateArgument argument) {
-                needSpace = true;
+                // the first argument joins the preceding text like the template itself; later ones are separate words
+                if (first) {
+                    softSpace = true;
+                } else {
+                    needSpace = true;
+                }
+                first = false;
                 writeWikitext(WtRtDataPrinter.print(argument.getValue()), false);
             }
         }
@@ -496,7 +505,8 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
         if (sb.length() > 0) {
             if (needNewline) {
                 sb.append('\n');
-            } else if (needSpace || leadingWs || softSpace && CLOSING_PUNCTUATION.indexOf(collapsed.charAt(0)) < 0) {
+            } else if (needSpace || leadingWs || softSpace && CLOSING_PUNCTUATION.indexOf(collapsed.charAt(0)) < 0
+                    && OPENING_PUNCTUATION.indexOf(sb.charAt(sb.length() - 1)) < 0) {
                 sb.append(' ');
             }
         }

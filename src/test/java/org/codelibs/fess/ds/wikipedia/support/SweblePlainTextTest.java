@@ -208,6 +208,28 @@ public class SweblePlainTextTest {
     }
 
     @Test
+    public void templateOnItsOwnLineBecomesItsOwnLine() {
+        // as at the top of many articles: a short description and a maintenance tag before the lead
+        final String w = "{{Short description|Java library}}\n{{More citations needed|date=February 2012}}\n'''Lucene''' is a library.";
+        assertEquals("Java library\nFebruary 2012\nLucene is a library.", sweble(w));
+        assertEquals("Lucene is a library.", sweble(w, "*", null, false));
+    }
+
+    @Test
+    public void templateAtTheStartOfAnArgumentStaysInline() {
+        // a footnote whose text starts with another template, as in the lead of "Germany"
+        final String w = "'''Germany''',{{efn|{{langx|de|Deutschland}}; {{IPA|de|ˈdɔʏtʃlant}}}} officially a republic";
+        assertEquals("Germany, de Deutschland; de ˈdɔʏtʃlant officially a republic", sweble(w));
+        assertEquals("Germany, officially a republic", sweble(w, "Efn", null, false));
+    }
+
+    @Test
+    public void nonAsciiTextIsKept() {
+        assertEquals("Born in the Kingdom of Württemberg (el Ελλάδα, ja 日本)",
+                sweble("Born in the [[Kingdom of Württemberg]] ({{lang|el|Ελλάδα}}, {{lang|ja|日本}})"));
+    }
+
+    @Test
     public void captionsAreKeptUnlessDropped() {
         final String w = "Intro\n[[File:X.jpg|thumb|upright=1.2|alt=Alt text|A caption with [[Link|a link]]]]\nOutro";
         // options and alt text are not prose; only the caption is kept
@@ -260,75 +282,44 @@ public class SweblePlainTextTest {
     }
 
     // ===== Real articles =====
-    // Regression checks on real, messy wikitext (CC BY-SA fixtures, see src/test/resources/wikitext/README.md):
-    // no markup may survive, and prose from every part of the article must.
+    // Individual conversions are tested on snippets above. These check invariants on real, messy
+    // wikitext (CC BY-SA fixtures, see src/test/resources/wikitext/README.md) that snippets can't:
+    // no markup survives anywhere, and the whole article is converted, not cut off or handed to the
+    // regex fallback. Both are derived from the source, so the fixtures never need to be read.
 
     private static final Pattern LEFTOVER_MARKUP =
             Pattern.compile("\\{\\{|\\}\\}|\\[\\[|\\]\\]|''|^=+|=+$|^\\s*[*#]|\\{\\||\\|\\}|<ref|</", Pattern.MULTILINE);
 
-    private static String article(final String name) throws IOException {
-        return article(name, PlainTextOptions.DEFAULT);
-    }
+    /** A section heading whose text is plain (no links, templates, tags or entities). */
+    private static final Pattern PLAIN_HEADING = Pattern.compile("^(={2,6}) *([^=\\[\\]{}<>&'|]+?) *\\1 *$", Pattern.MULTILINE);
 
-    private static String article(final String name, final PlainTextOptions options) throws IOException {
+    private static void assertConvertsWholeArticle(final String name) throws IOException {
         final String wikiText = Files.readString(Path.of("src/test/resources/wikitext/" + name + ".txt"), StandardCharsets.UTF_8);
-        final String text = new WikiTextParser(wikiText).getPlainText(options);
-        final List<String> leftovers = LEFTOVER_MARKUP.matcher(text).results().map(m -> m.group()).toList();
-        assertTrue(leftovers.isEmpty(), name + ": leftover markup " + leftovers);
-        return text;
-    }
+        final List<String> headings = PLAIN_HEADING.matcher(wikiText).results().map(m -> m.group(2)).toList();
+        assertTrue(headings.size() >= 5, name + ": expected the fixture to have plain section headings, found " + headings);
 
-    private static void assertContains(final String text, final String expected) {
-        assertTrue(text.contains(expected), () -> "missing: " + expected.replace("\n", "\\n"));
-    }
-
-    private static void assertStartsWith(final String text, final String expected) {
-        assertTrue(text.startsWith(expected), () -> "expected to start with: " + expected + "\nbut starts with: "
-                + text.substring(0, Math.min(text.length(), expected.length() + 40)));
+        for (final PlainTextOptions options : List.of(PlainTextOptions.DEFAULT, PlainTextOptions.of("*", null, true))) {
+            final String text = new WikiTextParser(wikiText).getPlainText(options);
+            final List<String> leftovers = LEFTOVER_MARKUP.matcher(text).results().map(m -> m.group()).toList();
+            assertTrue(leftovers.isEmpty(), name + ": leftover markup " + leftovers);
+            final List<String> lines = List.of(text.split("\n"));
+            final List<String> missing = headings.stream().filter(h -> !lines.contains(h)).toList();
+            assertTrue(missing.isEmpty(), name + ": headings missing as lines of the text: " + missing);
+        }
     }
 
     @Test
     public void realArticle_apacheLucene() throws IOException {
-        final String t = article("Apache_Lucene");
-        // template text is kept by default: the short description and infobox values precede the lead
-        assertStartsWith(t, "Java library for full-text search\n");
-        // bold title and links in the lead
-        final String lead =
-                "Apache Lucene is a free and open-source search engine software library, originally written in Java by Doug Cutting.";
-        assertContains(t, "\n" + lead);
-        assertStartsWith(article("Apache_Lucene", PlainTextOptions.of("*", null, false)), lead);
-        // section heading on its own line
-        assertContains(t, "\nHistory\n");
-        // list item near the end, list marker stripped
-        assertContains(t, "\nOpenSearch – an open source enterprise search server based on a fork of Elasticsearch 7");
+        assertConvertsWholeArticle("Apache_Lucene");
     }
 
     @Test
     public void realArticle_germany() throws IOException {
-        final String t = article("Germany");
-        assertStartsWith(t, "Country in Europe\n");
-        // footnote templates ({{efn|...}}) keep their text where the footnote marker is, inside the lead
-        assertContains(t, "\nGermany, de Deutschland; de ");
-        assertContains(t, "officially the Federal Republic of Germany,");
-        assertContains(t, "is a country in Western and Central Europe.");
-        // lead after a large infobox and hatnote templates, all dropped
-        final String lead = "Germany, officially the Federal Republic of Germany, is a country in Western and Central Europe.";
-        assertStartsWith(article("Germany", PlainTextOptions.of("*", null, false)), lead);
-        // apostrophe inside a word
-        assertContains(t, "The nation's capital and most populous city is Berlin");
-        // prose from the Culture section, late in the article
-        assertContains(t, "The Berlin Fashion Week and the fashion trade fair Bread & Butter are held twice a year.");
+        assertConvertsWholeArticle("Germany");
     }
 
     @Test
     public void realArticle_albertEinstein() throws IOException {
-        final String t = article("Albert_Einstein");
-        // lead after nested {{efn|{{IPAc-en|...}}}} templates
-        assertContains(t, "was a German-born theoretical physicist best known for developing the theory of relativity.");
-        assertContains(t, "has been called \"the world's most famous equation\".");
-        // non-ASCII text from linked names
-        assertContains(t, "Born as a subject to the Kingdom of Württemberg, part of the German Empire");
-        // prose late in the article
-        assertContains(t, "In addition to longtime collaborators Leopold Infeld, Nathan Rosen, Peter Bergmann and others");
+        assertConvertsWholeArticle("Albert_Einstein");
     }
 }
