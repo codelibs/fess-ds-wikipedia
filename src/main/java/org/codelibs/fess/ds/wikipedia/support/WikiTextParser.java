@@ -165,8 +165,19 @@ public class WikiTextParser {
      * @return The plain text representation of the wiki content.
      */
     public String getPlainText() {
+        return getPlainText(PlainTextOptions.DEFAULT);
+    }
+
+    /**
+     * Extracts the plain text like {@link #getPlainText()}, dropping the template
+     * text and captions that the options select.
+     *
+     * @param options which template text and captions to drop
+     * @return The plain text representation of the wiki content.
+     */
+    public String getPlainText(final PlainTextOptions options) {
         try {
-            return SwebleTextConverter.toPlainText(SWEBLE_CONFIG, wikiText);
+            return SwebleTextConverter.toPlainText(SWEBLE_CONFIG, options, wikiText);
         } catch (final Exception e) {
             logger.warn("Failed to parse wikitext with Sweble, falling back to regex stripping.", e);
             return getPlainTextByRegex();

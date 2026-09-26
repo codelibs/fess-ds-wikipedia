@@ -1,0 +1,5 @@
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.11/" version="0.11" xml:lang="en">
+<page><title>Hosting</title><ns>0</ns><id>1</id><revision><id>101</id><timestamp>2024-01-01T00:00:00Z</timestamp><model>wikitext</model><format>text/x-wiki</format><text>Our servers.
+{{Note|Restart Apache after changing the config.}}
+[[File:Rack.jpg|thumb|The rack in room 2]]</text></revision></page>
+</mediawiki>

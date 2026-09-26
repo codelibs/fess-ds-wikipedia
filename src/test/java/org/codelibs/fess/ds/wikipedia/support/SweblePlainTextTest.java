@@ -119,16 +119,28 @@ public class SweblePlainTextTest {
     }
 
     @Test
+    public void templateLeavesNoSpaceBeforeClosingPunctuation() {
+        final String w = "The {{langx|de|Haus}}; and the formula{{math|x}}, which";
+        assertEquals("The de Haus; and the formula x, which", sweble(w));
+        // the space before "{{langx" is real whitespace in the source, so it stays
+        assertEquals("The ; and the formula, which", sweble(w, "*", null, false));
+    }
+
+    @Test
     public void nestedTemplates() {
         final String w = "A {{outer|x={{inner|y}}|z}} B";
-        assertEquals("A B", sweble(w));
+        // template text is kept by default, nested templates included
+        assertEquals("A y z B", sweble(w));
+        assertEquals("A B", sweble(w, "*", null, false));
         assertTrue(regex(w).contains("}}"), regex(w));
     }
 
     @Test
     public void multiLineInfobox() {
         final String w = "{{Infobox person\n| name = X\n| birth = {{birth date|1900|1|1}}\n}}\n'''X''' was a person.";
-        assertEquals("X was a person.", sweble(w));
+        // infobox values are kept by default, parameter names are not
+        assertEquals("X 1900 1 1\nX was a person.", sweble(w));
+        assertEquals("X was a person.", sweble(w, "Infobox person", null, false));
         assertTrue(regex(w).contains("name = X"), regex(w));
     }
 
@@ -142,8 +154,9 @@ public class SweblePlainTextTest {
     @Test
     public void imageWithNestedLinkInCaption() {
         final String w = "Before [[File:X.jpg|thumb|A caption with [[link]]]] after";
-        // a thumbnail breaks the paragraph, hence the newline
-        assertEquals("Before\nafter", sweble(w));
+        // a thumbnail breaks the paragraph, hence the newlines; its caption is kept by default
+        assertEquals("Before\nA caption with link\nafter", sweble(w));
+        assertEquals("Before\nafter", sweble(w, null, null, true));
         assertTrue(regex(w).contains("]"), regex(w));
     }
 
@@ -161,11 +174,63 @@ public class SweblePlainTextTest {
         assertEquals("a b c – d", sweble("__NOTOC__ a b&nbsp;c &ndash; d"));
     }
 
+    // ===== Options: drop_templates / keep_templates / drop_captions =====
+
+    private static String sweble(final String wikiText, final String dropTemplates, final String keepTemplates,
+            final boolean dropCaptions) {
+        return new WikiTextParser(wikiText).getPlainText(PlainTextOptions.of(dropTemplates, keepTemplates, dropCaptions));
+    }
+
+    @Test
+    public void templateArgumentTextIsKeptByDefault() {
+        final String w = "Before {{Note|Restart [[Apache|the web server]] after '''changes'''.|title=Careful}} after";
+        // argument values are parsed as wikitext; the parameter name "title=" is not kept
+        assertEquals("Before Restart the web server after changes. Careful after", sweble(w));
+        // nested templates are kept as well
+        assertEquals("A Keep this B", sweble("A {{Note|Keep {{nowrap|this}}}} B"));
+    }
+
+    @Test
+    public void dropTemplatesFiltersTheListedOnes() {
+        final String w = "A {{Note|Keep {{Cite web|title=Cited title|url=https://example.com}}}} B";
+        // a bare URL in an argument is dropped like any bare URL
+        assertEquals("A Keep Cited title B", sweble(w));
+        // dropped also when nested in a kept template
+        assertEquals("A Keep B", sweble(w, "Cite web", null, false));
+    }
+
+    @Test
+    public void dropAllWithKeepTemplatesIsAnAllowlist() {
+        final String w = "A {{Note|Keep {{nowrap|this}}}}{{Infobox|name=X}} B";
+        assertEquals("A Keep B", sweble(w, "*", "Note", false));
+        assertEquals("A Keep this B", sweble(w, "*", "Note, Nowrap", false));
+        assertEquals("A B", sweble(w, "*", null, false));
+    }
+
+    @Test
+    public void captionsAreKeptUnlessDropped() {
+        final String w = "Intro\n[[File:X.jpg|thumb|upright=1.2|alt=Alt text|A caption with [[Link|a link]]]]\nOutro";
+        // options and alt text are not prose; only the caption is kept
+        assertEquals("Intro\nA caption with a link\nOutro", sweble(w));
+        assertEquals("Intro\nOutro", sweble(w, null, null, true));
+    }
+
+    @Test
+    public void galleryCaptionsAreKeptUnlessDropped() {
+        final String w =
+                "A\n<gallery>\nFile:Berlin.jpg|The [[Reichstag]] at night\nBonn.jpg|alt=x|Bonn from '''above'''\nNoCaption.jpg\n</gallery>\nB";
+        assertEquals("A\nThe Reichstag at night\nBonn from above\nB", sweble(w));
+        assertEquals("A B", sweble(w, null, null, true));
+    }
+
     // ===== Tag extensions =====
 
     @Test
-    public void galleryIsDropped() {
-        assertEquals("A B", sweble("A\n<gallery>\nFile:Berlin.jpg|The [[Reichstag]] at night\nFile:Bonn.jpg\n</gallery>\nB"));
+    public void galleryIsDroppedWithItsCaptions() {
+        // file names never reach the text; with drop_captions nothing of the gallery does
+        final String w = "A\n<gallery>\nFile:Berlin.jpg|The [[Reichstag]] at night\nFile:Bonn.jpg\n</gallery>\nB";
+        assertEquals("A\nThe Reichstag at night\nB", sweble(w));
+        assertEquals("A B", sweble(w, null, null, true));
     }
 
     @Test
@@ -202,7 +267,12 @@ public class SweblePlainTextTest {
             Pattern.compile("\\{\\{|\\}\\}|\\[\\[|\\]\\]|''|^=+|=+$|^\\s*[*#]|\\{\\||\\|\\}|<ref|</", Pattern.MULTILINE);
 
     private static String article(final String name) throws IOException {
-        final String text = sweble(Files.readString(Path.of("src/test/resources/wikitext/" + name + ".txt"), StandardCharsets.UTF_8));
+        return article(name, PlainTextOptions.DEFAULT);
+    }
+
+    private static String article(final String name, final PlainTextOptions options) throws IOException {
+        final String wikiText = Files.readString(Path.of("src/test/resources/wikitext/" + name + ".txt"), StandardCharsets.UTF_8);
+        final String text = new WikiTextParser(wikiText).getPlainText(options);
         final List<String> leftovers = LEFTOVER_MARKUP.matcher(text).results().map(m -> m.group()).toList();
         assertTrue(leftovers.isEmpty(), name + ": leftover markup " + leftovers);
         return text;
@@ -220,9 +290,13 @@ public class SweblePlainTextTest {
     @Test
     public void realArticle_apacheLucene() throws IOException {
         final String t = article("Apache_Lucene");
+        // template text is kept by default: the short description and infobox values precede the lead
+        assertStartsWith(t, "Java library for full-text search\n");
         // bold title and links in the lead
-        assertStartsWith(t,
-                "Apache Lucene is a free and open-source search engine software library, originally written in Java by Doug Cutting.");
+        final String lead =
+                "Apache Lucene is a free and open-source search engine software library, originally written in Java by Doug Cutting.";
+        assertContains(t, "\n" + lead);
+        assertStartsWith(article("Apache_Lucene", PlainTextOptions.of("*", null, false)), lead);
         // section heading on its own line
         assertContains(t, "\nHistory\n");
         // list item near the end, list marker stripped
@@ -232,8 +306,14 @@ public class SweblePlainTextTest {
     @Test
     public void realArticle_germany() throws IOException {
         final String t = article("Germany");
-        // lead after a large infobox and hatnote templates
-        assertStartsWith(t, "Germany, officially the Federal Republic of Germany, is a country in Western and Central Europe.");
+        assertStartsWith(t, "Country in Europe\n");
+        // footnote templates ({{efn|...}}) keep their text where the footnote marker is, inside the lead
+        assertContains(t, "\nGermany, de Deutschland; de ");
+        assertContains(t, "officially the Federal Republic of Germany,");
+        assertContains(t, "is a country in Western and Central Europe.");
+        // lead after a large infobox and hatnote templates, all dropped
+        final String lead = "Germany, officially the Federal Republic of Germany, is a country in Western and Central Europe.";
+        assertStartsWith(article("Germany", PlainTextOptions.of("*", null, false)), lead);
         // apostrophe inside a word
         assertContains(t, "The nation's capital and most populous city is Berlin");
         // prose from the Culture section, late in the article
