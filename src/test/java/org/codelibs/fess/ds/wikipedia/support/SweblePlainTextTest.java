@@ -161,6 +161,39 @@ public class SweblePlainTextTest {
         assertEquals("a b c – d", sweble("__NOTOC__ a b&nbsp;c &ndash; d"));
     }
 
+    // ===== Tag extensions =====
+
+    @Test
+    public void galleryIsDropped() {
+        assertEquals("A B", sweble("A\n<gallery>\nFile:Berlin.jpg|The [[Reichstag]] at night\nFile:Bonn.jpg\n</gallery>\nB"));
+    }
+
+    @Test
+    public void poemBodyIsParsedLineByLine() {
+        assertEquals("Roses are red,\nViolets are blue", sweble("<poem>\nRoses are '''red''',\n[[Violet]]s are blue\n</poem>"));
+    }
+
+    @Test
+    public void codeBodiesAreKeptLiterally() {
+        assertEquals("Code:\nsudo systemctl restart apache2 ''x''\ndone",
+                sweble("Code: <syntaxhighlight lang=\"bash\">sudo systemctl restart apache2 ''x''</syntaxhighlight> done"));
+        assertEquals("raw [[not a link]]", sweble("<pre>raw [[not a link]]</pre>"));
+    }
+
+    @Test
+    public void extensionsWithMarkupOrDataAreDropped() {
+        assertEquals("A B", sweble("A <imagemap>File:X.png|thumb\nrect 0 0 1 1 [[Page]]</imagemap> B"));
+        assertEquals("A B", sweble("A <inputbox>type=search</inputbox> B"));
+        assertEquals("A B", sweble("A <templatestyles src=\"Box/styles.css\" /> B"));
+        assertEquals("A B", sweble("A <math>E = mc^2</math> B"));
+    }
+
+    @Test
+    public void unknownTagsAreParsedAsWikitext() {
+        // not registered as tag extensions, so Sweble parses their content like any other wikitext
+        assertEquals("Some translatable text", sweble("<translate>Some '''translatable''' [[Link|text]]</translate>"));
+    }
+
     // ===== Real articles =====
     // Regression checks on real, messy wikitext (CC BY-SA fixtures, see src/test/resources/wikitext/README.md):
     // no markup may survive, and prose from every part of the article must.

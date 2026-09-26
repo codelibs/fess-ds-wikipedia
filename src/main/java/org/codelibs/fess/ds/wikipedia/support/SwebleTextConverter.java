@@ -19,10 +19,14 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.sweble.wikitext.engine.EngineException;
+import org.sweble.wikitext.engine.PageId;
 import org.sweble.wikitext.engine.PageTitle;
+import org.sweble.wikitext.engine.WtEngineImpl;
 import org.sweble.wikitext.engine.config.WikiConfig;
 import org.sweble.wikitext.engine.nodes.EngNowiki;
 import org.sweble.wikitext.engine.nodes.EngPage;
+import org.sweble.wikitext.engine.nodes.EngProcessedPage;
 import org.sweble.wikitext.engine.output.HtmlSanitizer;
 import org.sweble.wikitext.parser.nodes.WtDefinitionListDef;
 import org.sweble.wikitext.parser.nodes.WtDefinitionListTerm;
@@ -74,14 +78,24 @@ import de.fau.cs.osr.ptk.common.AstVisitor;
  * headings or external links, and lines are not wrapped: only readable text survives.
  * Templates, references, images, categories and comments are dropped, matching the
  * previous regex-based {@link WikiTextParser#getPlainText()}.
+ * <p>
+ * Tag extensions ({@code <poem>}, {@code <gallery>}, ...) arrive with their body unparsed.
+ * Code bodies are kept as literal text, prose bodies are parsed as wikitext, and every other
+ * extension is dropped, so an extension's own syntax never reaches the output.
  */
 public class SwebleTextConverter extends AstVisitor<WtNode> {
 
     private static final Pattern WS = Pattern.compile("\\s+");
 
-    /** Tag extensions whose body is code/data, not prose. */
-    private static final Set<String> SKIPPED_TAG_EXTENSIONS =
-            Set.of("ref", "references", "graph", "score", "timeline", "math", "chem", "mapframe", "maplink", "templatedata");
+    /** Tag extensions whose body is literal text (code), kept as is. */
+    private static final Set<String> LITERAL_TAG_EXTENSIONS = Set.of("pre", "source", "syntaxhighlight");
+
+    /**
+     * Tag extensions whose body is wikitext prose, parsed and converted like the page itself.
+     * Any tag extension in neither set (gallery, imagemap, inputbox, ref, math, templatestyles,
+     * graph, ...) carries markup, data or code for another renderer and is dropped.
+     */
+    private static final Set<String> WIKITEXT_TAG_EXTENSIONS = Set.of("poem", "indicator", "langconvert");
 
     private static final Set<String> BLOCK_ELEMENTS = Set.of("blockquote", "caption", "center", "dd", "div", "dt", "h1", "h2", "h3", "h4",
             "h5", "h6", "li", "p", "tr", "table", "ul", "ol", "dl", "pre");
@@ -99,6 +113,21 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
 
     public SwebleTextConverter(final WikiConfig config) {
         this.config = config;
+    }
+
+    /**
+     * Parses wikitext and converts it to plain text.
+     *
+     * @param config the wiki configuration
+     * @param wikiText the wikitext to convert
+     * @return the plain text
+     * @throws EngineException if Sweble fails to process the text
+     * @throws LinkTargetException if the placeholder page title is invalid
+     */
+    public static String toPlainText(final WikiConfig config, final String wikiText) throws EngineException, LinkTargetException {
+        final PageId pageId = new PageId(PageTitle.make(config, "Page"), -1);
+        final EngProcessedPage page = new WtEngineImpl(config).postprocess(pageId, wikiText, null);
+        return (String) new SwebleTextConverter(config).go(page.getPage());
     }
 
     @Override
@@ -276,13 +305,19 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
 
     public void visit(final WtTagExtension n) {
         final String name = n.getName().trim().toLowerCase(Locale.ROOT);
-        if (SKIPPED_TAG_EXTENSIONS.contains(name) || !n.hasBody()) {
+        if (!n.hasBody() || !LITERAL_TAG_EXTENSIONS.contains(name) && !WIKITEXT_TAG_EXTENSIONS.contains(name)) {
+            // keep the neighbours apart, as for a dropped template
             needSpace = true;
             return;
         }
-        // <poem>, <syntaxhighlight>, <blockquote> etc.: keep the raw body text
+        final String body = n.getBody().getContent();
         newline();
-        write(n.getBody().getContent());
+        if (LITERAL_TAG_EXTENSIONS.contains(name)) {
+            write(body);
+        } else {
+            // MediaWiki renders every line break of a <poem> as <br>
+            writeWikitext("poem".equals(name) ? body.replace("\n", "<br />\n") : body);
+        }
         newline();
     }
 
@@ -344,6 +379,20 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
         iterate(body);
         cellDepth--;
         needSpace = true;
+    }
+
+    private void writeWikitext(final String wikiText) {
+        final String text;
+        try {
+            text = toPlainText(config, wikiText);
+        } catch (final EngineException | LinkTargetException e) {
+            // unparsable body: drop it rather than leak its markup
+            return;
+        }
+        for (final String line : text.split("\n")) {
+            write(line);
+            newline();
+        }
     }
 
     private void newline() {

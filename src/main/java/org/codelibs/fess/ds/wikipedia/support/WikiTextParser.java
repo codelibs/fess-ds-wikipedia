@@ -21,11 +21,7 @@ import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sweble.wikitext.engine.PageId;
-import org.sweble.wikitext.engine.PageTitle;
-import org.sweble.wikitext.engine.WtEngineImpl;
 import org.sweble.wikitext.engine.config.WikiConfig;
-import org.sweble.wikitext.engine.nodes.EngProcessedPage;
 import org.sweble.wikitext.engine.utils.DefaultConfigEnWp;
 
 /**
@@ -170,10 +166,7 @@ public class WikiTextParser {
      */
     public String getPlainText() {
         try {
-            final WtEngineImpl engine = new WtEngineImpl(SWEBLE_CONFIG);
-            final PageId pageId = new PageId(PageTitle.make(SWEBLE_CONFIG, "Page"), -1);
-            final EngProcessedPage page = engine.postprocess(pageId, wikiText, null);
-            return (String) new SwebleTextConverter(SWEBLE_CONFIG).go(page.getPage());
+            return SwebleTextConverter.toPlainText(SWEBLE_CONFIG, wikiText);
         } catch (final Exception e) {
             logger.warn("Failed to parse wikitext with Sweble, falling back to regex stripping.", e);
             return getPlainTextByRegex();
