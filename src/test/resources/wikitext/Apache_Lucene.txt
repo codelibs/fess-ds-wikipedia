@@ -1,0 +1,108 @@
+{{short description|Java library for full-text search}}
+{{more citations needed|date=February 2012}}
+{{Infobox software
+| name = Lucene
+| logo = Apache Lucene logo.svg
+| logo_size = 200px
+| screenshot = 
+| caption = 
+| developer = [[Apache Software Foundation]]
+| released = {{Start date and age|1999}}
+| latest release version = 10.5.1
+| latest release date = {{Start date and age|2026|08|12}}<ref>{{cite web
+ | url         = https://lucene.apache.org/
+ | title       = Welcome to Apache Lucene
+ | access-date  = 12 February 2020
+ | at          = Lucene™ News section
+ | url-status  = live
+ | archive-url  = https://web.archive.org/web/20210212123326/https://lucene.apache.org/
+ | archive-date = 12 February 2021}}</ref>
+| programming language = [[Java (programming language)|Java]]
+| operating system = [[Cross-platform]]
+| genre = [[Search algorithm|Search]] and [[Search engine indexing|index]]
+| license = [[Apache License 2.0]]
+| website = {{URL|https://lucene.apache.org}}
+}}
+'''Apache Lucene''' is a [[free and open-source software|free and open-source]] [[Search engine (computing)|search engine]] [[Library (computing)|software library]], originally written in [[Java (programming language)|Java]] by [[Doug Cutting]]. It is supported by the [[Apache Software Foundation]] and is released under the [[Apache Software License]].  Lucene is widely used as a standard foundation for production search applications.<ref>{{Citation|last1=Kamphuis|first1=Chris|date=2020|volume=12036|pages=28–34|editor-last=Jose|editor-first=Joemon M.|place=Cham|publisher=Springer International Publishing|language=en|doi=10.1007/978-3-030-45442-5_4|isbn=978-3-030-45441-8|pmc=7148026|last2=de Vries|first2=Arjen P.|last3=Boytsov|first3=Leonid|last4=Lin|first4=Jimmy|title=Advances in Information Retrieval |chapter=Which BM25 do You Mean? A Large-Scale Reproducibility Study of Scoring Variants |series=Lecture Notes in Computer Science |editor2-last=Yilmaz|editor2-first=Emine|editor3-last=Magalhães|editor3-first=João|editor4-last=Castells|editor4-first=Pablo}}</ref><ref>{{Citation|last1=Grand|first1=Adrien|date=2020|volume=12036|pages=20–27|editor-last=Jose|editor-first=Joemon M.|place=Cham|publisher=Springer International Publishing|language=en|doi=10.1007/978-3-030-45442-5_3|isbn=978-3-030-45441-8|pmc=7148045|last2=Muir|first2=Robert|last3=Ferenczi|first3=Jim|last4=Lin|first4=Jimmy|title=Advances in Information Retrieval |chapter=From MAXSCORE to Block-Max Wand: The Story of How Lucene Significantly Improved Query Evaluation Performance |series=Lecture Notes in Computer Science |editor2-last=Yilmaz|editor2-first=Emine|editor3-last=Magalhães|editor3-first=João|editor4-last=Castells|editor4-first=Pablo}}</ref><ref>{{Cite journal|last1=Azzopardi|first1=Leif|last2=Moshfeghi|first2=Yashar|last3=Halvey|first3=Martin|last4=Alkhawaldeh|first4=Rami S.|last5=Balog|first5=Krisztian|last6=Di Buccio|first6=Emanuele|last7=Ceccarelli|first7=Diego|last8=Fernández-Luna|first8=Juan M.|last9=Hull|first9=Charlie|last10=Mannix|first10=Jake|last11=Palchowdhury|first11=Sauparna|date=2017-02-14|title=Lucene4IR: Developing Information Retrieval Evaluation Resources using Lucene|url=https://dl.acm.org/doi/10.1145/3053408.3053421|journal=ACM SIGIR Forum|language=en|volume=50|issue=2|pages=58–75|doi=10.1145/3053408.3053421|s2cid=212416159 |issn=0163-5840|url-access=subscription}}</ref>
+
+Lucene has been ported to other programming languages including [[Object Pascal]], [[Perl]], [[C Sharp (programming language)|C#]], [[C++]], [[Python (programming language)|Python]], [[Ruby (programming language)|Ruby]] and [[PHP]].<ref name="port">{{cite web |url=https://cwiki.apache.org/confluence/display/LUCENE/LuceneImplementations |title=LuceneImplementations |work=apache.org |access-date=2025-03-25 }}</ref>
+
+==History==
+[[Doug Cutting]] originally wrote Lucene in 1999.<ref>KeywordAnalyzer
+{{cite web |url=http://trijug.org/downloads/TriJug-11-07.pdf |title=Better Search with Apache Lucene and Solr |date=19 November 2007 |url-status=dead |archive-url=https://web.archive.org/web/20120131154001/http://trijug.org/downloads/TriJug-11-07.pdf |archive-date=31 January 2012}}</ref> Lucene was his fifth search engine. He had previously written two while at [[Xerox PARC]], one at [[Apple Inc.|Apple]], and a fourth at [[Excite (web portal)|Excite]].<ref>{{cite web|url=https://twitter.com/cutting/status/1137030687003774976|title=I wrote a couple of search engines at Xerox PARC, then V-Twin at Apple, then re-wrote Excite's search, then Lucene. So, Lucene might be considered V-Twin 3.0? Almost 25 years later, V-Twin still lives on as Mac OS X Search Kit!|last=Cutting|first=Doug|date=2019-06-07|website=@cutting|language=en|access-date=2019-06-19}}</ref> It was initially available for download from its home at the [[SourceForge]] web site. It joined the Apache Software Foundation's [[Jakarta Project|Jakarta]] family of open-source Java products in September 2001 and became its own top-level Apache project in February 2005. The name Lucene is Doug Cutting's wife's middle name and her maternal grandmother's first name.<ref>{{cite book |title=Web Content Management |last1= Barker |first1=Deane |year=2016 |publisher=O'Reilly |isbn=978-1491908105 |page=233 }}</ref>
+
+Lucene formerly included a number of sub-projects, such as Lucene.NET, [[Apache Mahout|Mahout]], [[Apache Tika|Tika]] and [[Nutch]]. These three are now independent top-level projects.
+
+In March 2010, the [[Apache Solr]] search server joined as a Lucene sub-project, merging the developer communities.
+
+Version 4.0 was released on October 12, 2012.<ref name="apache.org">{{cite web|url = https://lucene.apache.org/|title = Apache Lucene - Welcome to Apache Lucene|work = apache.org|access-date = 4 February 2016|url-status = live|archive-url = https://web.archive.org/web/20160204002101/https://lucene.apache.org/|archive-date = 4 February 2016}}</ref>
+
+In March 2021, Lucene changed its logo, and [[Apache Solr]] became a top level Apache project again, independent from Lucene.
+
+==Features and common use==
+While suitable for any application that requires full text [[Index (search engine)|indexing]] and searching capability, Lucene is recognized for its utility in the implementation of [[Internet search engine]]s and local, single-site searching.<ref>{{cite book|url=https://archive.org/details/luceneactionseco00hatc|url-access=limited|title=Lucene in Action, Second Edition|last1=McCandless|first1=Michael|last2=Hatcher|first2=Erik|last3=Gospodnetić|first3=Otis|publisher=Manning|year=2010|isbn=978-1933988177|page=[https://archive.org/details/luceneactionseco00hatc/page/n46 8]}}</ref><ref>{{cite web|url=http://www.glscube.org/downloads/glscube_design.pdf|title=GNU/Linux Semantic Storage System|website=glscube.org|archive-url=https://web.archive.org/web/20100601210729/http://www.glscube.org/downloads/glscube_design.pdf|archive-date=2010-06-01|url-status=dead}}</ref>
+
+Lucene includes a feature to perform a fuzzy search based on [[Levenshtein distance|edit distance]].<ref>{{cite web|url=https://lucene.apache.org/core/2_9_4/queryparsersyntax.html#Fuzzy+Searches|title=Apache Lucene - Query Parser Syntax|website=lucene.apache.org|url-status=live|archive-url=https://web.archive.org/web/20170502011748/http://lucene.apache.org/core/2_9_4/queryparsersyntax.html#Fuzzy+Searches|archive-date=2017-05-02}}</ref>
+
+Lucene has also been used to implement recommendation systems.<ref>J. Beel, S. Langer, and B. Gipp, “The Architecture and Datasets of Docear’s Research Paper Recommender System,” in Proceedings of the 3rd International Workshop on Mining Scientific Publications (WOSP 2014) at the ACM/IEEE Joint Conference on Digital Libraries (JCDL 2014), London, UK, 2014</ref> For example, Lucene's 'MoreLikeThis' Class can generate recommendations for similar documents. In a comparison of the term vector-based similarity approach of 'MoreLikeThis' with citation-based document similarity measures, such as [[co-citation]] and co-citation proximity analysis, Lucene's approach excelled at recommending documents with very similar structural characteristics and more narrow relatedness.<ref name="Schwarzer16">M. Schwarzer, M. Schubotz, N. Meuschke, C. Breitinger, [[Volker Markl|V. Markl]], and B. Gipp, https://www.gipp.com/wp-content/papercite-data/pdf/schwarzer2016.pdf "Evaluating Link-based Recommendations for Wikipedia" in Proceedings of the 16th ACM/IEEE-CS Joint Conference on Digital Libraries (JCDL), New York, NY, USA, 2016, pp. 191-200.</ref> In contrast, citation-based document similarity measures tended to be more suitable for recommending more broadly related documents,<ref name="Schwarzer16" /> meaning citation-based approaches may be more suitable for generating [[Recommender system#Beyond accuracy|serendipitous]] recommendations, as long as documents to be recommended contain in-text citations.
+
+==Lucene-based projects==
+Lucene itself is just an indexing and search library and does not contain [[web spider|crawling]] and HTML [[parsers|parsing]] functionality. However, several projects extend Lucene's capability:
+* [[Apache Nutch]] – provides [[web crawling]] and HTML parsing{{citation needed|date=June 2015}}
+* [[Apache Solr]] – an enterprise search server
+* [[CrateDB]] – open source, distributed SQL database built on Lucene<ref>{{cite news|url=http://www.infoworld.com/article/2984469/database/11-cutting-edge-databases-worth-exploring-now.html|title=11 cutting-edge databases worth exploring now|last=Wayner|first=Peter|access-date=21 September 2015|publisher=InfoWorld|url-status=live|archive-url=https://web.archive.org/web/20150921214828/http://www.infoworld.com/article/2984469/database/11-cutting-edge-databases-worth-exploring-now.html|archive-date=21 September 2015}}</ref>
+* [[DocFetcher]] – a [[multiplatform]] desktop search application{{citation needed|date=June 2015}}
+* [[Elasticsearch]] – an enterprise search server released in 2010<ref>{{cite web|url=https://www.elastic.co/products/elasticsearch|title=Elasticsearch: RESTful, Distributed Search & Analytics - Elastic|work=elastic.co|access-date=23 September 2015|url-status=live|archive-url=https://web.archive.org/web/20151008055359/https://www.elastic.co/products/elasticsearch |archive-date=8 October 2015}}</ref><ref>{{cite web|url=http://thedudeabides.com/articles/the_future_of_compass/|title=The Future of Compass & Elasticsearch|website=the dude abides|language=en|access-date=2015-10-14|url-status=dead|archive-url=https://web.archive.org/web/20151015021211/http://thedudeabides.com/articles/the_future_of_compass/|archive-date=2015-10-15}}</ref>
+* Kinosearch – a search engine written in [[Perl]] and [[C (programming language)|C]]<ref name="cmswire">{{cite news|url=http://www.cmswire.com/cms/enterprise-20/socialtext-updates-search-goes-kino-001037.php|title=Socialtext Updates Search, Goes Kino|last=Natividad|first=Angela|access-date=2011-05-31|publisher=CMS Wire|url-status=live|archive-url=https://web.archive.org/web/20120929122221/http://www.cmswire.com/cms/enterprise-20/socialtext-updates-search-goes-kino-001037.php|archive-date=2012-09-29}}</ref> and a loose [[Porting|port]] of Lucene.<ref name="test">{{cite web|url=http://p3rl.org/KinoSearch#DESCRIPTION|title=KinoSearch - Search engine library. - metacpan.org|author=Marvin Humphrey|work=p3rl.org|access-date=23 September 2015}}</ref> The [[Socialtext]] wiki software uses this search engine,<ref name="cmswire" /> and so does the [[MojoMojo]] wiki.<ref name="catbook">{{cite book|title=The Definitive Guide to Catalyst|url=https://archive.org/details/definitiveguidet00dime_868|url-access=limited|last=Diment|first=Kieren|author2=Trout, Matt S|publisher=[[Apress]]|year=2009|isbn=978-1-4302-2365-8|page=[https://archive.org/details/definitiveguidet00dime_868/page/n343 280]|chapter=Catalyst Cookbook}}</ref> It is also used by the [[Human Metabolome Database]] (HMDB)<ref>{{cite journal|date=January 2009|title=HMDB: a knowledgebase for the human metabolome|journal=[[Nucleic Acids Res.]]|volume=37|issue=Database issue|pages=D603–10|doi=10.1093/nar/gkn810|pmc=2686599|pmid=18953024|author1-link=David S. Wishart|last1=Wishart|first1=D. S.|last2=Knox|first2=C.|last3=Guo|first3=A. C.|last4=Eisner|first4=R.|last5=Young|first5=N.|last6=Gautam|first6=B.|last7=Hau|first7=D. D.|last8=Psychogios|first8=N.|last9=Dong|first9=E.|last10=Bouatra|first10=S.|last11=Mandal|first11=R.|last12=Sinelnikov|first12=I.|last13=Xia|first13=J.|last14=Jia|first14=L.|last15=Cruz|first15=J. A.|last16=Lim|first16=E.|last17=Sobsey|first17=C. A.|last18=Shrivastava|first18=S.|last19=Huang|first19=P.|last20=Liu|first20=P.|last21=Fang|first21=L.|last22=Peng|first22=J.|last23=Fradette|first23=R.|last24=Cheng|first24=D.|last25=Tzur|first25=D.|last26=Clements|first26=M.|last27=Lewis|first27=A.|last28=De Souza|first28=A.|last29=Zuniga|first29=A.|last30=Dawe|first30=M.|display-authors=1}}</ref> and the [[Toxin and Toxin-Target Database]] (T3DB).<ref>{{cite journal|date=January 2010|title=T3DB: a comprehensively annotated database of common toxins and their targets|journal=Nucleic Acids Res.|volume=38|issue=Database issue|pages=D781–6|doi=10.1093/nar/gkp934|pmc=2808899|pmid=19897546|last1=Lim|first1=Emilia|last2=Pon|first2=Allison|last3=Djoumbou|first3=Yannick|last4=Knox|first4=Craig|last5=Shrivastava|first5=Savita|last6=Guo|first6=An Chi|last7=Neveu|first7=Vanessa|last8=Wishart|first8=David S.}}</ref>
+* [[MongoDB]] Atlas Search – a cloud-native enterprise search application based on MongoDB and Apache Lucene
+*[[OpenSearch (software)|OpenSearch]] – an open source enterprise search server based on a fork of Elasticsearch 7
+* [[Swiftype]] – an enterprise search startup based on Lucene
+
+==See also==
+{{Portal|Free and open-source software}}
+* [[Enterprise search]]
+* [[Information extraction]]
+* [[Information retrieval]]
+* [[Text mining]]
+
+==References==
+{{Reflist}}
+
+==Bibliography==
+* {{cite book
+ | last      = Gospodnetic
+ | first     = Otis
+ | author2   = Erik Hatcher
+ | author3   = Michael McCandless 
+ | title     = Lucene in Action
+ | edition   = 2nd
+ | date      = 28 June 2009
+ | publisher = [[Manning Publications]]
+ | isbn      = 978-1-9339-8817-7
+ }}
+* {{cite book
+ | last      = Gospodnetic
+ | first     = Otis
+ | author2   = Erik Hatcher
+ | title     = Lucene in Action
+ | edition   = 1st
+ | date      = 1 December 2004
+ | publisher = [[Manning Publications]]
+ | isbn      = 978-1-9323-9428-3
+ }}
+
+==External links==
+* {{Official website|https://lucene.apache.org/}}
+
+{{Apache Software Foundation}}
+{{Authority control}}
+
+[[Category:Apache Software Foundation projects|Lucene]]
+[[Category:Free search engine software]]
+[[Category:Java (programming language) libraries]]
+[[Category:C Sharp libraries]]
+[[Category:Cross-platform software]]
+[[Category:Software using the Apache license]]
+[[Category:Search engine software]]
+[[Category:Software programmed in Pascal]]
+[[Category:1999 software]]

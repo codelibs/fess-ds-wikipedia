@@ -42,6 +42,56 @@
 				<groupId>net.revelc.code.formatter</groupId>
 				<artifactId>formatter-maven-plugin</artifactId>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+							<artifactSet>
+								<includes>
+									<include>io.github.rzo1.org.sweble.wikitext:swc-engine</include>
+									<include>io.github.rzo1.org.sweble.wikitext:swc-parser-lazy</include>
+									<include>de.fau.cs.osr.utils:utils</include>
+									<include>de.fau.cs.osr.ptk:ptk-common</include>
+									<include>xtc:rats-runtime</include>
+									<include>org.apache.commons:commons-collections4</include>
+									<include>jakarta.xml.bind:jakarta.xml.bind-api</include>
+									<include>jakarta.activation:jakarta.activation-api</include>
+									<include>org.glassfish.jaxb:jaxb-runtime</include>
+									<include>org.glassfish.jaxb:jaxb-core</include>
+									<include>org.glassfish.jaxb:txw2</include>
+									<include>org.eclipse.angus:angus-activation</include>
+									<include>com.sun.istack:istack-commons-runtime</include>
+								</includes>
+							</artifactSet>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<exclude>META-INF/MANIFEST.MF</exclude>
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+										<exclude>module-info.class</exclude>
+									</excludes>
+								</filter>
+							</filters>
+							<relocations>
+								<relocation>
+									<pattern>org.apache.commons.collections4</pattern>
+									<shadedPattern>org.codelibs.fess.ds.wikipedia.collections4</shadedPattern>
+								</relocation>
+							</relocations>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 	<!-- Fess plugins are distributed through maven.codelibs.org instead of Maven Central.
@@ -137,6 +187,11 @@
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 			<version>${slf4j.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.github.rzo1.org.sweble.wikitext</groupId>
+			<artifactId>swc-engine</artifactId>
+			<version>4.1.0</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
