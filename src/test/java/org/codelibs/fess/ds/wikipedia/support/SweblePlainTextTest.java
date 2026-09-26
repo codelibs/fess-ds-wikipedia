@@ -162,46 +162,60 @@ public class SweblePlainTextTest {
     }
 
     // ===== Real articles =====
+    // Regression checks on real, messy wikitext (CC BY-SA fixtures, see src/test/resources/wikitext/README.md):
+    // no markup may survive, and prose from every part of the article must.
 
     private static final Pattern LEFTOVER_MARKUP =
-            Pattern.compile("\\{\\{|\\}\\}|\\[\\[|\\]\\]|'''|''|^=+|=+$|^\\s*[*#]|\\{\\||\\|\\}|<ref|</", Pattern.MULTILINE);
+            Pattern.compile("\\{\\{|\\}\\}|\\[\\[|\\]\\]|''|^=+|=+$|^\\s*[*#]|\\{\\||\\|\\}|<ref|</", Pattern.MULTILINE);
+
+    private static String article(final String name) throws IOException {
+        final String text = sweble(Files.readString(Path.of("src/test/resources/wikitext/" + name + ".txt"), StandardCharsets.UTF_8));
+        final List<String> leftovers = LEFTOVER_MARKUP.matcher(text).results().map(m -> m.group()).toList();
+        assertTrue(leftovers.isEmpty(), name + ": leftover markup " + leftovers);
+        return text;
+    }
+
+    private static void assertContains(final String text, final String expected) {
+        assertTrue(text.contains(expected), () -> "missing: " + expected.replace("\n", "\\n"));
+    }
+
+    private static void assertStartsWith(final String text, final String expected) {
+        assertTrue(text.startsWith(expected), () -> "expected to start with: " + expected + "\nbut starts with: "
+                + text.substring(0, Math.min(text.length(), expected.length() + 40)));
+    }
 
     @Test
-    public void realArticles() throws IOException {
-        final StringBuilder report = new StringBuilder();
-        for (final String name : List.of("Apache_Lucene", "Germany", "Albert_Einstein")) {
-            final String w = Files.readString(Path.of("src/test/resources/wikitext/" + name + ".txt"), StandardCharsets.UTF_8);
+    public void realArticle_apacheLucene() throws IOException {
+        final String t = article("Apache_Lucene");
+        // bold title and links in the lead
+        assertStartsWith(t,
+                "Apache Lucene is a free and open-source search engine software library, originally written in Java by Doug Cutting.");
+        // section heading on its own line
+        assertContains(t, "\nHistory\n");
+        // list item near the end, list marker stripped
+        assertContains(t, "\nOpenSearch – an open source enterprise search server based on a fork of Elasticsearch 7");
+    }
 
-            // warm-up so timings exclude class loading
-            sweble(w);
-            regex(w);
-            final int runs = 5;
-            long t0 = System.nanoTime();
-            String s = null;
-            for (int i = 0; i < runs; i++) {
-                s = sweble(w);
-            }
-            final long swebleMs = (System.nanoTime() - t0) / runs / 1_000_000;
-            t0 = System.nanoTime();
-            String r = null;
-            for (int i = 0; i < runs; i++) {
-                r = regex(w);
-            }
-            final long regexMs = (System.nanoTime() - t0) / runs / 1_000_000;
+    @Test
+    public void realArticle_germany() throws IOException {
+        final String t = article("Germany");
+        // lead after a large infobox and hatnote templates
+        assertStartsWith(t, "Germany, officially the Federal Republic of Germany, is a country in Western and Central Europe.");
+        // apostrophe inside a word
+        assertContains(t, "The nation's capital and most populous city is Berlin");
+        // prose from the Culture section, late in the article
+        assertContains(t, "The Berlin Fashion Week and the fashion trade fair Bread & Butter are held twice a year.");
+    }
 
-            final long swebleLeft = LEFTOVER_MARKUP.matcher(s).results().count();
-            final long regexLeft = LEFTOVER_MARKUP.matcher(r).results().count();
-            report.append(String.format(
-                    "%-16s wikitext=%7d chars | sweble: %7d chars, %5d markup hits, %4d ms | regex: %7d chars, %5d markup hits, %4d ms%n",
-                    name, w.length(), s.length(), swebleLeft, swebleMs, r.length(), regexLeft, regexMs));
-
-            final Path out = Path.of("target/plaintext");
-            Files.createDirectories(out);
-            Files.writeString(out.resolve(name + ".sweble.txt"), s, StandardCharsets.UTF_8);
-            Files.writeString(out.resolve(name + ".regex.txt"), r, StandardCharsets.UTF_8);
-
-            assertTrue(swebleLeft < regexLeft, name + ": sweble leaves " + swebleLeft + " vs regex " + regexLeft);
-        }
-        System.out.println("\n=== PLAINTEXT REPORT ===\n" + report);
+    @Test
+    public void realArticle_albertEinstein() throws IOException {
+        final String t = article("Albert_Einstein");
+        // lead after nested {{efn|{{IPAc-en|...}}}} templates
+        assertContains(t, "was a German-born theoretical physicist best known for developing the theory of relativity.");
+        assertContains(t, "has been called \"the world's most famous equation\".");
+        // non-ASCII text from linked names
+        assertContains(t, "Born as a subject to the Kingdom of Württemberg, part of the German Empire");
+        // prose late in the article
+        assertContains(t, "In addition to longtime collaborators Leopold Infeld, Nathan Rosen, Peter Bergmann and others");
     }
 }
