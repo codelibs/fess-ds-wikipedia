@@ -25,9 +25,14 @@ import org.junit.jupiter.api.Test;
 public class XmlDumpSourceTest extends UnitDsTestCase {
 
     private List<WikiDocument> parse(final String fixture) {
+        return parse(fixture, PlainTextOptions.DEFAULT);
+    }
+
+    private List<WikiDocument> parse(final String fixture, final PlainTextOptions options) {
         final java.net.URL url = getClass().getResource("/fixtures/" + fixture);
         Objects.requireNonNull(url, "fixture not found: " + fixture);
         final XmlDumpSource source = new XmlDumpSource(url.toString(), new DumpFetcher("TestAgent/1.0"));
+        source.setPlainTextOptions(options);
         final List<WikiDocument> documents = new ArrayList<>();
         source.forEach(documents::add);
         return documents;
@@ -74,5 +79,12 @@ public class XmlDumpSourceTest extends UnitDsTestCase {
     public void test_forEach_carriesTheRawWikitext() {
         final WikiDocument document = parse("wiki-namespaces.xml").get(1);
         assertEquals("Pages about cats.", document.getWikitext());
+    }
+
+    @Test
+    public void test_plainTextOptions_reachTheDocumentContent() {
+        assertEquals("Our servers.\nRestart Apache after changing the config.\nThe rack in room 2",
+                parse("wiki-options.xml").get(0).getContent());
+        assertEquals("Our servers.", parse("wiki-options.xml", PlainTextOptions.of("Note", null, true)).get(0).getContent());
     }
 }

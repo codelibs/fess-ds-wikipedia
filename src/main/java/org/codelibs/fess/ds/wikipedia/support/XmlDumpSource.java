@@ -24,6 +24,8 @@ public class XmlDumpSource implements DumpSource {
 
     private final WikiXMLSAXParser parser;
 
+    private PlainTextOptions plainTextOptions = PlainTextOptions.DEFAULT;
+
     /**
      * Creates a source for the dump at the given location.
      *
@@ -43,9 +45,18 @@ public class XmlDumpSource implements DumpSource {
         parser.setTotalEntitySizeLimit(totalEntitySizeLimit);
     }
 
+    /**
+     * Sets which template text and captions the plain-text content drops.
+     *
+     * @param plainTextOptions the options
+     */
+    public void setPlainTextOptions(final PlainTextOptions plainTextOptions) {
+        this.plainTextOptions = plainTextOptions;
+    }
+
     @Override
     public void forEach(final Consumer<WikiDocument> consumer) {
-        parser.setPageCallback(page -> consumer.accept(toDocument(page)));
+        parser.setPageCallback(page -> consumer.accept(toDocument(page, plainTextOptions)));
         parser.parse();
     }
 
@@ -56,11 +67,22 @@ public class XmlDumpSource implements DumpSource {
      * @return the document
      */
     static WikiDocument toDocument(final WikiPage page) {
+        return toDocument(page, PlainTextOptions.DEFAULT);
+    }
+
+    /**
+     * Converts a parsed page into the format-independent document.
+     *
+     * @param page the parsed page
+     * @param plainTextOptions which template text and captions the content drops
+     * @return the document
+     */
+    static WikiDocument toDocument(final WikiPage page, final PlainTextOptions plainTextOptions) {
         final WikiDocument document = new WikiDocument();
         document.setId(page.getId());
         document.setTitle(page.getTitle());
         document.setNamespace(page.getNamespace());
-        document.setContent(page.getText());
+        document.setContent(page.getText(plainTextOptions));
         document.setWikitext(page.getWikiText());
         document.setFormat(page.getFormat());
         document.setModel(page.getModel());

@@ -37,3 +37,25 @@ last_modified=timestamp
 timestamp=timestamp
 ```
 
+### Template text and captions (XML dumps)
+
+For `source=xml` dumps, the `content` field is plain text converted from the
+wikitext. By default it keeps the argument text of every template (without
+parameter names) and every image and gallery caption, so that text can be
+found. Three optional parameters filter it:
+
+```
+# Drop these templates' text, also when nested ("*" drops all templates)
+drop_templates=Cite web,Cite news,Use dmy dates
+# Keep these templates although drop_templates matches them
+# (drop_templates=* with keep_templates=Note,Warning keeps only those two)
+keep_templates=
+# Drop image and gallery captions
+drop_captions=false
+```
+
+Template names match the way MediaWiki resolves them: the first letter is
+case-insensitive, `_` equals a space, and the `Template:` prefix is optional.
+Templates aren't expanded, so a kept template contributes its argument text,
+not what MediaWiki would render. CirrusSearch dumps (`source=cirrus`) already
+contain MediaWiki's rendered text and aren't affected.

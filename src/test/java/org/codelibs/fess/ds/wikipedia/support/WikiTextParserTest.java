@@ -280,13 +280,8 @@ public class WikiTextParserTest extends UnitDsTestCase {
         final String wikiText = "Text with &lt;tag&gt; entities";
         final WikiTextParser parser = new WikiTextParser(wikiText);
         final String plainText = parser.getPlainText();
-        // HTML entities are decoded to < and >, but then HTML tags are removed
-        assertFalse(plainText.contains("&lt;"));
-        assertFalse(plainText.contains("&gt;"));
-        // The decoded <tag> is removed as it's treated as an HTML tag
-        assertFalse(plainText.contains("<tag>"));
-        assertTrue(plainText.contains("Text with"));
-        assertTrue(plainText.contains("entities"));
+        // Entities are decoded to the characters MediaWiki displays; escaped markup is text, not a tag
+        assertEquals("Text with <tag> entities", plainText);
     }
 
     @Test

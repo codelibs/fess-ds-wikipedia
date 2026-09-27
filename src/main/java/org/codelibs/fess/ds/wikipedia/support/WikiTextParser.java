@@ -19,6 +19,11 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.sweble.wikitext.engine.config.WikiConfig;
+import org.sweble.wikitext.engine.utils.DefaultConfigEnWp;
+
 /**
  * For internal use only -- Used by the {@link WikiPage} class.
  * Can also be used as a stand alone class to parse wiki formatted text.
@@ -27,6 +32,11 @@ import java.util.regex.Pattern;
  * @see <a href="https://github.com/elastic/elasticsearch-river-wikipedia">Wikipedia River Plugin for Elasticsearch</a>
  */
 public class WikiTextParser {
+
+    private static final Logger logger = LogManager.getLogger(WikiTextParser.class);
+
+    // Building the config is expensive (it loads namespace/interwiki tables); it is immutable afterwards.
+    private static final WikiConfig SWEBLE_CONFIG = DefaultConfigEnWp.generate();
 
     private String wikiText = null;
     private ArrayList<String> pageCats = null;
@@ -155,6 +165,26 @@ public class WikiTextParser {
      * @return The plain text representation of the wiki content.
      */
     public String getPlainText() {
+        return getPlainText(PlainTextOptions.DEFAULT);
+    }
+
+    /**
+     * Extracts the plain text like {@link #getPlainText()}, dropping the template
+     * text and captions that the options select.
+     *
+     * @param options which template text and captions to drop
+     * @return The plain text representation of the wiki content.
+     */
+    public String getPlainText(final PlainTextOptions options) {
+        try {
+            return SwebleTextConverter.toPlainText(SWEBLE_CONFIG, options, wikiText);
+        } catch (final Exception e) {
+            logger.warn("Failed to parse wikitext with Sweble, falling back to regex stripping.", e);
+            return getPlainTextByRegex();
+        }
+    }
+
+    String getPlainTextByRegex() {
         String text = wikiText.replace("&gt;", ">");
         text = text.replace("&lt;", "<");
         text = text.replaceAll("<ref>.*?</ref>", " ");
