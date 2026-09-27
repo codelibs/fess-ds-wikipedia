@@ -389,13 +389,33 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
     }
 
     @Test
+    public void test_putDocumentValues_keepsTheCharactersMediaWikiLeavesLiteral() throws Exception {
+        // MediaWiki's wfUrlencode() leaves ; @ $ ! * ( ) , / ~ : literal, so its own page URLs do too.
+        assertEquals("Mercury_(planet)", encodedTitleOf("Mercury (planet)"));
+        assertEquals("Help:Contents", encodedTitleOf("Help:Contents"));
+        assertEquals("a;b@c$d!e*f,g~h", encodedTitleOf("a;b@c$d!e*f,g~h"));
+    }
+
+    @Test
+    public void test_putDocumentValues_keepsSubpageSlashes() throws Exception {
+        // "Foo%2FBar" is a 404 on Apache's default config; "Foo/Bar" is the real subpage.
+        assertEquals("Foo/Bar/Baz", encodedTitleOf("Foo/Bar/Baz"));
+    }
+
+    @Test
     public void test_putDocumentValues_percentEncodesTheRest() throws Exception {
+        // These would change what the URL means (query, fragment, escapes), so MediaWiki escapes them too.
+        assertEquals("A%26B%3FC%23D%25E%2BF%3DG%27H%22I", encodedTitleOf("A&B?C#D%E+F=G'H\"I"));
+        assertEquals("Stra%C3%9Fe_B%C3%BCro", encodedTitleOf("Straße Büro"));
+    }
+
+    private String encodedTitleOf(final String title) {
         final WikiDocument document = new WikiDocument();
-        document.setTitle("Mercury (planet)");
+        document.setTitle(title);
         document.setContent("body");
         final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
         dataStore.putDocumentValues(resultMap, document, 100);
-        assertEquals("Mercury_%28planet%29", resultMap.get("encodedTitle"));
+        return (String) resultMap.get("encodedTitle");
     }
 
     @Test
@@ -446,6 +466,17 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
         assertEquals("ja.wikipedia.org", resultMap.get("host"));
         assertEquals("ja.wikipedia.org", resultMap.get("site"));
         assertEquals("https://ja.wikipedia.org/wiki/Tokyo_Tower", resultMap.get("url"));
+    }
+
+    @Test
+    public void test_putSiteValues_buildsTheCanonicalUrlForPunctuatedTitles() throws Exception {
+        final WikiDocument document = new WikiDocument();
+        document.setTitle("Talk:Mercury (planet)/Archive 1");
+        document.setContent("body");
+        final java.util.Map<String, Object> resultMap = new java.util.LinkedHashMap<>();
+        dataStore.putSiteValues(resultMap, document, "en.wikipedia.org", "en");
+
+        assertEquals("https://en.wikipedia.org/wiki/Talk:Mercury_(planet)/Archive_1", resultMap.get("url"));
     }
 
     @Test
