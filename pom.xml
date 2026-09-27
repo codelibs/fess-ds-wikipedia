@@ -62,12 +62,6 @@
 									<include>xtc:rats-runtime</include>
 									<include>org.apache.commons:commons-collections4</include>
 									<include>jakarta.xml.bind:jakarta.xml.bind-api</include>
-									<include>jakarta.activation:jakarta.activation-api</include>
-									<include>org.glassfish.jaxb:jaxb-runtime</include>
-									<include>org.glassfish.jaxb:jaxb-core</include>
-									<include>org.glassfish.jaxb:txw2</include>
-									<include>org.eclipse.angus:angus-activation</include>
-									<include>com.sun.istack:istack-commons-runtime</include>
 								</includes>
 							</artifactSet>
 							<filters>
@@ -79,6 +73,15 @@
 										<exclude>META-INF/*.DSA</exclude>
 										<exclude>META-INF/*.RSA</exclude>
 										<exclude>module-info.class</exclude>
+										<exclude>META-INF/versions/*/module-info.class</exclude>
+									</excludes>
+								</filter>
+								<!-- Sweble only needs the JAXB API classes to load its configuration
+								     classes; nothing looks up a JAXB implementation through them. -->
+								<filter>
+									<artifact>jakarta.xml.bind:jakarta.xml.bind-api</artifact>
+									<excludes>
+										<exclude>META-INF/services/**</exclude>
 									</excludes>
 								</filter>
 							</filters>
@@ -86,6 +89,11 @@
 								<relocation>
 									<pattern>org.apache.commons.collections4</pattern>
 									<shadedPattern>org.codelibs.fess.ds.wikipedia.collections4</shadedPattern>
+								</relocation>
+								<!-- Fess ships its own JAXB; keep this copy apart from it. -->
+								<relocation>
+									<pattern>jakarta.xml.bind</pattern>
+									<shadedPattern>org.codelibs.fess.ds.wikipedia.jakarta.xml.bind</shadedPattern>
 								</relocation>
 							</relocations>
 						</configuration>
@@ -192,6 +200,18 @@
 			<groupId>io.github.rzo1.org.sweble.wikitext</groupId>
 			<artifactId>swc-engine</artifactId>
 			<version>4.1.0</version>
+			<!-- The JAXB implementation is used only to save and load configurations as XML, which
+			     this plugin never does (the engine needs just the JAXB API classes). -->
+			<exclusions>
+				<exclusion>
+					<groupId>org.glassfish.jaxb</groupId>
+					<artifactId>jaxb-runtime</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>jakarta.activation</groupId>
+					<artifactId>jakarta.activation-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
