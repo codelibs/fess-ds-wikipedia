@@ -37,6 +37,35 @@ last_modified=timestamp
 timestamp=timestamp
 ```
 
+### Choosing a dump
+
+The data store reads two kinds of dumps, picked by the `source` parameter
+(`auto`, the default, picks by the location):
+
+- `source=cirrus`: a CirrusSearch index dump, which Wikimedia publishes for its
+  wikis under <https://dumps.wikimedia.org/other/cirrus_search_index/>. It
+  carries the text MediaWiki itself rendered, with templates expanded, so no
+  wikitext markup can reach the index. Prefer it for Wikipedia and other
+  Wikimedia wikis.
+- `source=xml`: a MediaWiki XML export (`*-pages-articles.xml.bz2`, or the
+  `Special:Export` / `dumpBackup.php` output of any MediaWiki). It carries
+  wikitext, which the data store converts to plain text as described below.
+
+### Plain text of XML dumps
+
+The wikitext of `source=xml` dumps is converted with the
+[Sweble](https://github.com/rzo1/sweble-wikitext) wikitext parser. The
+namespace names are read from the export's `<siteinfo>`, so images and category
+statements are recognized in any language (`[[ファイル:...]]`,
+`[[Kategorie:...]]`) and in wikis with their own namespace names. A page Sweble
+fails on is converted with regular expressions instead.
+
+```
+# sweble (default) or regex; regex is several times faster but leaves nested
+# templates, tables and multi-line markup behind
+text_extractor=sweble
+```
+
 ### Template text and captions (XML dumps)
 
 For `source=xml` dumps, the `content` field is plain text converted from the
