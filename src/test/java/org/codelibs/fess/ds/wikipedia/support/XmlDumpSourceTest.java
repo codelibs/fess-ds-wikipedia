@@ -87,4 +87,17 @@ public class XmlDumpSourceTest extends UnitDsTestCase {
                 parse("wiki-options.xml").get(0).getContent());
         assertEquals("Our servers.", parse("wiki-options.xml", PlainTextOptions.of("Note", null, true)).get(0).getContent());
     }
+
+    @Test
+    public void test_siteInfo_namesTheWikisNamespaces() {
+        // the fixture's wiki names its file and category namespaces "Anhang" and "Rubrik"
+        assertEquals("Der Server steht im Keller.\nDer Plan", parse("wiki-siteinfo.xml").get(0).getContent());
+    }
+
+    @Test
+    public void test_siteInfo_isNotNeededByTheRegexExtractor() {
+        final String content =
+                parse("wiki-siteinfo.xml", PlainTextOptions.DEFAULT.withExtractor(PlainTextOptions.Extractor.REGEX)).get(0).getContent();
+        assertTrue(content, content.contains("Der Server steht im Keller."));
+    }
 }

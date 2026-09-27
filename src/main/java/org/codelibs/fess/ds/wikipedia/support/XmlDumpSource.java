@@ -17,10 +17,15 @@ package org.codelibs.fess.ds.wikipedia.support;
 
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /**
  * Reads a MediaWiki XML export dump.
  */
 public class XmlDumpSource implements DumpSource {
+
+    private static final Logger logger = LogManager.getLogger(XmlDumpSource.class);
 
     private final WikiXMLSAXParser parser;
 
@@ -46,7 +51,8 @@ public class XmlDumpSource implements DumpSource {
     }
 
     /**
-     * Sets which template text and captions the plain-text content drops.
+     * Sets which template text and captions the plain-text content drops, and how it is
+     * converted. The namespace names of the dump's {@code <siteinfo>} are added to them.
      *
      * @param plainTextOptions the options
      */
@@ -56,7 +62,27 @@ public class XmlDumpSource implements DumpSource {
 
     @Override
     public void forEach(final Consumer<WikiDocument> consumer) {
-        parser.setPageCallback(page -> consumer.accept(toDocument(page, plainTextOptions)));
+        parser.setPageCallback(new PageCallbackHandler() {
+            private PlainTextOptions options = plainTextOptions;
+
+            @Override
+            public void processSiteInfo(final SiteInfo siteInfo) {
+                // the regex extractor doesn't use the namespace names; don't pay for building them
+                if (options.getExtractor() == PlainTextOptions.Extractor.SWEBLE) {
+                    try {
+                        options = options.withSiteInfo(siteInfo);
+                    } catch (final RuntimeException e) {
+                        // the pages can still be converted, only without the wiki's own namespace names
+                        logger.warn("Failed to read the namespaces of the dump; using the default names.", e);
+                    }
+                }
+            }
+
+            @Override
+            public void process(final WikiPage page) {
+                consumer.accept(toDocument(page, options));
+            }
+        });
         parser.parse();
     }
 

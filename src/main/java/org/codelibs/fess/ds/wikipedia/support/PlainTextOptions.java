@@ -20,9 +20,12 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.sweble.wikitext.engine.config.WikiConfig;
+
 /**
- * Controls which template text and captions {@link WikiTextParser#getPlainText(PlainTextOptions)}
- * drops.
+ * Controls how {@link WikiTextParser#getPlainText(PlainTextOptions)} converts wikitext: which
+ * template text and captions it drops, which extractor it uses and which wiki's namespace names
+ * it knows.
  * <p>
  * Text that is dropped can't be found, so by default the argument text of every template and
  * every image and gallery caption is kept. Installations filter out what they consider noise
@@ -33,7 +36,32 @@ import java.util.stream.Collectors;
 public final class PlainTextOptions {
 
     /** Keeps the text of all templates and captions. */
-    public static final PlainTextOptions DEFAULT = new PlainTextOptions(Set.of(), false, Set.of(), false);
+    public static final PlainTextOptions DEFAULT = new PlainTextOptions(Set.of(), false, Set.of(), false, Extractor.SWEBLE, null);
+
+    /** How wikitext is converted to plain text. */
+    public enum Extractor {
+        /** Parses the wikitext with Sweble; falls back to {@link #REGEX} for a page it fails on. */
+        SWEBLE,
+        /**
+         * Strips markup with regular expressions: several times faster, but leaves nested
+         * templates, tables and multi-line markup behind.
+         */
+        REGEX;
+
+        /**
+         * Returns the extractor for a handler parameter value.
+         *
+         * @param value {@code sweble} or {@code regex}, case-insensitive; null or blank for {@link #SWEBLE}
+         * @return the extractor
+         * @throws IllegalArgumentException if the value names no extractor
+         */
+        public static Extractor of(final String value) {
+            if (value == null || value.isBlank()) {
+                return SWEBLE;
+            }
+            return valueOf(value.trim().toUpperCase(Locale.ROOT));
+        }
+    }
 
     /** The {@code drop_templates} value that drops every template not listed in {@code keep_templates}. */
     public static final String ALL = "*";
@@ -48,12 +76,19 @@ public final class PlainTextOptions {
 
     private final boolean dropCaptions;
 
+    private final Extractor extractor;
+
+    /** Null for {@link WikiConfigFactory#getDefault()}, which is built only when first needed. */
+    private final WikiConfig wikiConfig;
+
     private PlainTextOptions(final Set<String> droppedTemplates, final boolean dropAllTemplates, final Set<String> keptTemplates,
-            final boolean dropCaptions) {
+            final boolean dropCaptions, final Extractor extractor, final WikiConfig wikiConfig) {
         this.droppedTemplates = droppedTemplates;
         this.dropAllTemplates = dropAllTemplates;
         this.keptTemplates = keptTemplates;
         this.dropCaptions = dropCaptions;
+        this.extractor = extractor;
+        this.wikiConfig = wikiConfig;
     }
 
     /**
@@ -70,7 +105,47 @@ public final class PlainTextOptions {
     public static PlainTextOptions of(final String dropTemplates, final String keepTemplates, final boolean dropCaptions) {
         final Set<String> dropped = parseNames(dropTemplates);
         final boolean dropAll = dropped.contains(ALL);
-        return new PlainTextOptions(dropAll ? Set.of() : dropped, dropAll, parseNames(keepTemplates), dropCaptions);
+        return new PlainTextOptions(dropAll ? Set.of() : dropped, dropAll, parseNames(keepTemplates), dropCaptions, Extractor.SWEBLE, null);
+    }
+
+    /**
+     * Returns these options with another extractor.
+     *
+     * @param extractor the extractor
+     * @return the options
+     */
+    public PlainTextOptions withExtractor(final Extractor extractor) {
+        return new PlainTextOptions(droppedTemplates, dropAllTemplates, keptTemplates, dropCaptions, extractor, wikiConfig);
+    }
+
+    /**
+     * Returns these options for the wiki a dump's {@code <siteinfo>} describes, so that its own
+     * namespace names are recognized.
+     *
+     * @param siteInfo the dump's {@code <siteinfo>}
+     * @return the options
+     */
+    public PlainTextOptions withSiteInfo(final SiteInfo siteInfo) {
+        return new PlainTextOptions(droppedTemplates, dropAllTemplates, keptTemplates, dropCaptions, extractor,
+                WikiConfigFactory.create(siteInfo));
+    }
+
+    /**
+     * Returns the extractor.
+     *
+     * @return the extractor
+     */
+    public Extractor getExtractor() {
+        return extractor;
+    }
+
+    /**
+     * Returns the Sweble configuration of the wiki.
+     *
+     * @return the configuration
+     */
+    public WikiConfig getWikiConfig() {
+        return wikiConfig != null ? wikiConfig : WikiConfigFactory.getDefault();
     }
 
     private static Set<String> parseNames(final String names) {

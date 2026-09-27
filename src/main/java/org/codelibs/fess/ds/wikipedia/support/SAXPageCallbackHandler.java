@@ -49,6 +49,11 @@ public class SAXPageCallbackHandler extends DefaultHandler {
     private String currentWikitext;
     private String currentTitle;
 
+    private String language;
+    private SiteInfo siteInfo;
+    private Integer currentNamespaceKey;
+    private StringBuilder currentNamespaceName;
+
     /**
      * Constructs a new SAXPageCallbackHandler with the specified PageCallbackHandler.
      * @param ph The PageCallbackHandler to use for processing Wikipedia pages.
@@ -60,7 +65,23 @@ public class SAXPageCallbackHandler extends DefaultHandler {
     @Override
     public void startElement(final String uri, final String name, final String qName, final Attributes attr) {
         currentTag = qName;
-        if ("page".equals(qName)) {
+        if ("mediawiki".equals(qName)) {
+            language = attr.getValue("xml:lang");
+        } else if ("siteinfo".equals(qName)) {
+            siteInfo = new SiteInfo();
+            siteInfo.setLanguage(language);
+        } else if (siteInfo != null && "namespace".equals(qName)) {
+            currentNamespaceKey = null;
+            currentNamespaceName = new StringBuilder();
+            final String key = attr.getValue("key");
+            if (StringUtil.isNotBlank(key)) {
+                try {
+                    currentNamespaceKey = Integer.valueOf(key.trim());
+                } catch (final NumberFormatException e) {
+                    logger.warn("Failed to parse a namespace key: {}", key);
+                }
+            }
+        } else if ("page".equals(qName)) {
             currentPage = new WikiPage();
             currentWikitext = StringUtil.EMPTY;
             currentTitle = StringUtil.EMPTY;
@@ -69,7 +90,18 @@ public class SAXPageCallbackHandler extends DefaultHandler {
 
     @Override
     public void endElement(final String uri, final String name, final String qName) {
-        if ("page".equals(qName)) {
+        if (siteInfo != null && "namespace".equals(qName)) {
+            if (currentNamespaceKey != null) {
+                siteInfo.addNamespace(currentNamespaceKey, currentNamespaceName.toString());
+            }
+            currentNamespaceKey = null;
+            currentNamespaceName = null;
+        } else if ("siteinfo".equals(qName)) {
+            if (siteInfo != null) {
+                pageHandler.processSiteInfo(siteInfo);
+            }
+            siteInfo = null;
+        } else if ("page".equals(qName)) {
             currentPage.setTitle(currentTitle);
             currentPage.setWikiText(currentWikitext);
             pageHandler.process(currentPage);
@@ -80,6 +112,10 @@ public class SAXPageCallbackHandler extends DefaultHandler {
 
     @Override
     public void characters(final char ch[], final int start, final int length) {
+        if (currentNamespaceName != null) {
+            currentNamespaceName.append(ch, start, length);
+            return;
+        }
         switch (currentTag) {
         case "title": {
             currentTitle = currentTitle.concat(new String(ch, start, length));

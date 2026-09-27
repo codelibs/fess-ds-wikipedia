@@ -270,13 +270,17 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
     }
 
     public void visit(final WtUrl url) {
-        // bare URLs in running text carry no searchable prose
+        // a bare URL is rendered as itself, and people search for URLs and host names
+        final String protocol = url.getProtocol();
+        write(protocol == null || protocol.isEmpty() ? url.getPath() : protocol + ":" + url.getPath());
     }
 
     public void visit(final WtExternalLink link) {
-        // "[http://example.com label]" -> "label"; unlabeled links are dropped
+        // "[http://example.com label]" -> "label"; "[http://example.com]" -> the URL, so it can be found
         if (link.hasTitle()) {
             iterate(link.getTitle());
+        } else {
+            dispatch(link.getTarget());
         }
     }
 

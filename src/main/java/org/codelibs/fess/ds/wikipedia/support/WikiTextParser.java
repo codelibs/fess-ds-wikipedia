@@ -21,8 +21,7 @@ import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sweble.wikitext.engine.config.WikiConfig;
-import org.sweble.wikitext.engine.utils.DefaultConfigEnWp;
+import org.codelibs.fess.ds.wikipedia.support.PlainTextOptions.Extractor;
 
 /**
  * For internal use only -- Used by the {@link WikiPage} class.
@@ -34,9 +33,6 @@ import org.sweble.wikitext.engine.utils.DefaultConfigEnWp;
 public class WikiTextParser {
 
     private static final Logger logger = LogManager.getLogger(WikiTextParser.class);
-
-    // Building the config is expensive (it loads namespace/interwiki tables); it is immutable afterwards.
-    private static final WikiConfig SWEBLE_CONFIG = DefaultConfigEnWp.generate();
 
     private String wikiText = null;
     private ArrayList<String> pageCats = null;
@@ -172,14 +168,21 @@ public class WikiTextParser {
      * Extracts the plain text like {@link #getPlainText()}, dropping the template
      * text and captions that the options select.
      *
-     * @param options which template text and captions to drop
+     * @param options which template text and captions to drop, and how to convert
      * @return The plain text representation of the wiki content.
      */
     public String getPlainText(final PlainTextOptions options) {
+        if (options.getExtractor() == Extractor.REGEX) {
+            return getPlainTextByRegex();
+        }
         try {
-            return SwebleTextConverter.toPlainText(SWEBLE_CONFIG, options, wikiText);
-        } catch (final Exception e) {
-            logger.warn("Failed to parse wikitext with Sweble, falling back to regex stripping.", e);
+            return SwebleTextConverter.toPlainText(options.getWikiConfig(), options, wikiText);
+        } catch (final Exception | StackOverflowError e) {
+            // one line per page: a dump can hold many pages Sweble fails on
+            logger.warn("Failed to parse wikitext with Sweble, falling back to regex stripping: {}", e.toString());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Sweble failure", e);
+            }
             return getPlainTextByRegex();
         }
     }
@@ -187,12 +190,21 @@ public class WikiTextParser {
     String getPlainTextByRegex() {
         String text = wikiText.replace("&gt;", ">");
         text = text.replace("&lt;", "<");
-        text = text.replaceAll("<ref>.*?</ref>", " ");
+        // (?s): comments and references often span several lines
+        text = text.replaceAll("(?s)<!--.*?-->", " ");
+        // <ref> commonly carries attributes (name=, group=) or is self-closing; the
+        // original pattern only matched the bare <ref>...</ref> form.
+        text = text.replaceAll("<ref(?:\\s[^>]*?)?/>", " ");
+        text = text.replaceAll("(?s)<ref(?:\\s[^>]*?)?>.*?</ref>", " ");
         text = text.replaceAll("</?.*?>", " ");
         text = text.replaceAll("\\{\\{.*?\\}\\}", " ");
+        // Section headers ("== Heading ==", any level) keep their text but lose the '=' markup.
+        text = text.replaceAll("(?m)^\\s*=+\\s*(.*?)\\s*=+\\s*$", "$1\n");
+        // Bullet/numbered/definition list markers ("*", "#", ":", ";") at the start of a line.
+        text = text.replaceAll("(?m)^[ \\t]*[*#:;]+\\s*", "");
         text = text.replaceAll("\\[\\[.*?:.*?\\]\\]", " ");
-        text = text.replaceAll("\\[\\[(.*?)\\]\\]", "$1");
-        text = text.replaceAll("\\s(.*?)\\|(\\w+\\s)", " $2");
+        // "[[Link]]" -> "Link"; "[[Link|Text]]" (and multi-pipe forms) -> the text after the last "|".
+        text = text.replaceAll("\\[\\[(?:[^\\]]*\\|)?([^|\\]]+)\\]\\]", "$1");
         text = text.replaceAll("\\[.*?\\]", " ");
         return text.replaceAll("\\'+", "");
     }

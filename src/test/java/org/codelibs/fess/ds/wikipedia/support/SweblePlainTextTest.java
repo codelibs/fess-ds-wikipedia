@@ -148,7 +148,9 @@ public class SweblePlainTextTest {
     public void multiLineCommentsAndRefs() {
         final String w = "A <!-- hidden\ncomment --> B <ref>line1\nline2</ref> C";
         assertEquals("A B C", sweble(w));
-        assertTrue(regex(w).contains("hidden"), regex(w));
+        // the regex fallback strips multi-line comments and references as well
+        assertFalse(regex(w).contains("hidden"), regex(w));
+        assertFalse(regex(w).contains("line1"), regex(w));
     }
 
     @Test
@@ -174,6 +176,64 @@ public class SweblePlainTextTest {
         assertEquals("a b c – d", sweble("__NOTOC__ a b&nbsp;c &ndash; d"));
     }
 
+    // ===== Namespaces of wikis that aren't in English =====
+
+    private static String sweble(final String wikiText, final SiteInfo siteInfo) {
+        return new WikiTextParser(wikiText).getPlainText(PlainTextOptions.DEFAULT.withSiteInfo(siteInfo));
+    }
+
+    @Test
+    public void japaneseFileAndCategoryNamesAreKnownWithoutSiteInfo() {
+        final String w =
+                "東京都は[[日本]]の首都である。\n[[ファイル:Tokyo.jpg|サムネイル|東京の[[夜景]]]]\n[[画像:Old.png|thumb|旧図]]\n" + "[[Category:日本の都道府県]]\n[[カテゴリ:東京都]]";
+        assertEquals("東京都は日本の首都である。\n東京の夜景\n旧図", sweble(w));
+    }
+
+    @Test
+    public void germanFileAndCategoryNamesAreKnownWithoutSiteInfo() {
+        final String w = "Text\n[[Datei:Berlin.jpg|mini|Berlin bei Nacht]]\n[[Bild:Alt.png|links|Altes Bild]]\n[[Kategorie:Deutschland]]";
+        assertEquals("Text\nBerlin bei Nacht\nAltes Bild", sweble(w));
+    }
+
+    @Test
+    public void siteInfoNamesAWikisOwnNamespaces() {
+        // an internal wiki may name its namespaces in any way; the export's <siteinfo> says how
+        final SiteInfo siteInfo = new SiteInfo();
+        siteInfo.addNamespace(0, "");
+        siteInfo.addNamespace(6, "Anhang");
+        siteInfo.addNamespace(14, "Rubrik");
+        final String w = "Text [[Anhang:Plan.png|thumb|Der Plan]] [[Rubrik:Server]] [[Wartung]]";
+        assertEquals("Text\nDer Plan\nWartung", sweble(w, siteInfo));
+        // without it they are ordinary links
+        assertTrue(sweble(w).contains("Rubrik:Server"), sweble(w));
+    }
+
+    @Test
+    public void siteInfoLanguageDropsLinksToOtherLanguages() {
+        final SiteInfo siteInfo = new SiteInfo();
+        siteInfo.setLanguage("de");
+        siteInfo.addNamespace(6, "Datei");
+        siteInfo.addNamespace(14, "Kategorie");
+        assertEquals("Berlin ist die Hauptstadt.", sweble("Berlin ist die [[Hauptstadt]].\n[[en:Berlin]] [[ja:ベルリン]]", siteInfo));
+    }
+
+    // ===== URLs =====
+
+    @Test
+    public void urlsAreKept() {
+        assertEquals("See https://example.org/docs and https://example.com, or Example site.",
+                sweble("See https://example.org/docs and [https://example.com], or [https://example.net Example site]."));
+    }
+
+    // ===== text_extractor =====
+
+    @Test
+    public void regexExtractorSkipsSweble() {
+        final String w = "A {{Note|B}} '''C''' [[D|E]]";
+        assertEquals(regex(w),
+                new WikiTextParser(w).getPlainText(PlainTextOptions.DEFAULT.withExtractor(PlainTextOptions.Extractor.REGEX)));
+    }
+
     // ===== Options: drop_templates / keep_templates / drop_captions =====
 
     private static String sweble(final String wikiText, final String dropTemplates, final String keepTemplates,
@@ -193,8 +253,8 @@ public class SweblePlainTextTest {
     @Test
     public void dropTemplatesFiltersTheListedOnes() {
         final String w = "A {{Note|Keep {{Cite web|title=Cited title|url=https://example.com}}}} B";
-        // a bare URL in an argument is dropped like any bare URL
-        assertEquals("A Keep Cited title B", sweble(w));
+        // a bare URL in an argument is kept like any bare URL
+        assertEquals("A Keep Cited title https://example.com B", sweble(w));
         // dropped also when nested in a kept template
         assertEquals("A Keep B", sweble(w, "Cite web", null, false));
     }

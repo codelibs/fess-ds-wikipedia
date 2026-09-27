@@ -36,4 +36,13 @@ public interface PageCallbackHandler {
      * @see WikiPage
      */
     void process(WikiPage page);
+
+    /**
+     * Called once with the dump's {@code <siteinfo>} header, before the first page.
+     * A dump without the header never calls it.
+     *
+     * @param siteInfo the wiki's namespace names
+     */
+    default void processSiteInfo(final SiteInfo siteInfo) {
+    }
 }
