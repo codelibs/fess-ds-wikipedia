@@ -227,6 +227,32 @@ public class WikipediaDataStoreTest extends UnitDsTestCase {
     }
 
     @Test
+    public void test_getPlainTextOptions_readsTheTextExtractor() throws Exception {
+        final Method method = WikipediaDataStore.class.getDeclaredMethod("getPlainTextOptions", DataStoreParams.class);
+        method.setAccessible(true);
+        assertEquals(PlainTextOptions.Extractor.SWEBLE,
+                ((PlainTextOptions) method.invoke(dataStore, new DataStoreParams())).getExtractor());
+        final DataStoreParams params = new DataStoreParams();
+        params.put("text_extractor", "regex");
+        assertEquals(PlainTextOptions.Extractor.REGEX, ((PlainTextOptions) method.invoke(dataStore, params)).getExtractor());
+    }
+
+    @Test
+    public void test_getPlainTextOptions_rejectsAnUnknownTextExtractor() throws Exception {
+        final Method method = WikipediaDataStore.class.getDeclaredMethod("getPlainTextOptions", DataStoreParams.class);
+        method.setAccessible(true);
+        final DataStoreParams params = new DataStoreParams();
+        params.put("text_extractor", "html");
+        try {
+            method.invoke(dataStore, params);
+            fail("an unknown text_extractor should be rejected");
+        } catch (final java.lang.reflect.InvocationTargetException e) {
+            assertTrue("expected a DataStoreException but was " + e.getCause(),
+                    e.getCause() instanceof org.codelibs.fess.exception.DataStoreException);
+        }
+    }
+
+    @Test
     public void test_getUserAgent_fallsBackToTheFessCrawlerUserAgentWhenParameterIsAbsent() throws Exception {
         final Method method = WikipediaDataStore.class.getDeclaredMethod("getUserAgent", DataStoreParams.class);
         method.setAccessible(true);

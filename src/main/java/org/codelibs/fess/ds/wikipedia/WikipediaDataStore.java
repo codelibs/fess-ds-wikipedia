@@ -93,6 +93,13 @@ public class WikipediaDataStore extends AbstractDataStore {
     protected static final String DROP_CAPTIONS_PARAM = "drop_captions";
 
     /**
+     * The parameter name for how {@code source=xml} content is converted to plain text:
+     * {@code sweble} (the default) parses the wikitext, {@code regex} strips it with regular
+     * expressions, which is faster but leaves nested and multi-line markup behind.
+     */
+    protected static final String TEXT_EXTRACTOR_PARAM = "text_extractor";
+
+    /**
      * Used only when both the {@link #USER_AGENT_PARAM} parameter and the Fess crawler
      * User-Agent are blank, so that a request is never sent with an empty User-Agent header.
      */
@@ -258,12 +265,19 @@ public class WikipediaDataStore extends AbstractDataStore {
      * A CirrusSearch dump carries MediaWiki's own rendered text, so it is not affected.
      *
      * @param paramMap the data store parameters
-     * @return the options from {@link #DROP_TEMPLATES_PARAM}, {@link #KEEP_TEMPLATES_PARAM} and
-     *         {@link #DROP_CAPTIONS_PARAM}
+     * @return the options from {@link #DROP_TEMPLATES_PARAM}, {@link #KEEP_TEMPLATES_PARAM},
+     *         {@link #DROP_CAPTIONS_PARAM} and {@link #TEXT_EXTRACTOR_PARAM}
      */
     protected PlainTextOptions getPlainTextOptions(final DataStoreParams paramMap) {
-        return PlainTextOptions.of(paramMap.getAsString(DROP_TEMPLATES_PARAM), paramMap.getAsString(KEEP_TEMPLATES_PARAM),
-                Boolean.parseBoolean(paramMap.getAsString(DROP_CAPTIONS_PARAM, "false").trim()));
+        final String extractor = paramMap.getAsString(TEXT_EXTRACTOR_PARAM);
+        final PlainTextOptions options =
+                PlainTextOptions.of(paramMap.getAsString(DROP_TEMPLATES_PARAM), paramMap.getAsString(KEEP_TEMPLATES_PARAM),
+                        Boolean.parseBoolean(paramMap.getAsString(DROP_CAPTIONS_PARAM, "false").trim()));
+        try {
+            return options.withExtractor(PlainTextOptions.Extractor.of(extractor));
+        } catch (final IllegalArgumentException e) {
+            throw new DataStoreException("Unknown " + TEXT_EXTRACTOR_PARAM + ": " + extractor + " (use sweble or regex)", e);
+        }
     }
 
     /** The parameter name selecting which dump format to read. */

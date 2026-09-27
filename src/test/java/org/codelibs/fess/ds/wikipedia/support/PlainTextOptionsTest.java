@@ -17,6 +17,7 @@ package org.codelibs.fess.ds.wikipedia.support;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -72,5 +73,24 @@ public class PlainTextOptionsTest {
     public void normalizeTemplateName() {
         assertEquals("Ünicode name", PlainTextOptions.normalizeTemplateName("  template:ünicode__name "));
         assertEquals("", PlainTextOptions.normalizeTemplateName("Template:"));
+    }
+
+    @Test
+    public void extractorIsSwebleUnlessRegexIsNamed() {
+        assertEquals(PlainTextOptions.Extractor.SWEBLE, PlainTextOptions.DEFAULT.getExtractor());
+        assertEquals(PlainTextOptions.Extractor.SWEBLE, PlainTextOptions.Extractor.of(null));
+        assertEquals(PlainTextOptions.Extractor.SWEBLE, PlainTextOptions.Extractor.of(" "));
+        assertEquals(PlainTextOptions.Extractor.SWEBLE, PlainTextOptions.Extractor.of("Sweble"));
+        assertEquals(PlainTextOptions.Extractor.REGEX, PlainTextOptions.Extractor.of(" regex "));
+        assertThrows(IllegalArgumentException.class, () -> PlainTextOptions.Extractor.of("html"));
+    }
+
+    @Test
+    public void withMethodsKeepTheOtherOptions() {
+        final PlainTextOptions options =
+                PlainTextOptions.of("Note", null, true).withExtractor(PlainTextOptions.Extractor.REGEX).withSiteInfo(new SiteInfo());
+        assertEquals(PlainTextOptions.Extractor.REGEX, options.getExtractor());
+        assertFalse(options.keepsTemplate("Note"));
+        assertFalse(options.keepsCaptions());
     }
 }
