@@ -29,6 +29,13 @@ import java.util.TreeMap;
  */
 public class SiteInfo {
 
+    /**
+     * Default constructor.
+     */
+    public SiteInfo() {
+        // nothing to do
+    }
+
     private final Map<Integer, String> namespaces = new TreeMap<>();
 
     private String language;
