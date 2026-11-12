@@ -128,10 +128,21 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
     /** Paragraph breaks inside table cells would split a row over several lines. */
     private int cellDepth;
 
+    /**
+     * Creates a converter with the default options.
+     *
+     * @param config the wiki configuration
+     */
     public SwebleTextConverter(final WikiConfig config) {
         this(config, PlainTextOptions.DEFAULT);
     }
 
+    /**
+     * Creates a converter.
+     *
+     * @param config the wiki configuration
+     * @param options the options of the plain-text conversion
+     */
     public SwebleTextConverter(final WikiConfig config, final PlainTextOptions options) {
         this.config = config;
         this.options = options;
@@ -171,30 +182,65 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
 
     // =========================================================================
 
+    /**
+     * Visits a {@code WtNode} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtNode n) {
         iterate(n);
     }
 
+    /**
+     * Visits a {@code EngPage} node.
+     *
+     * @param p the node to visit
+     */
     public void visit(final EngPage p) {
         iterate(p);
     }
 
+    /**
+     * Visits a {@code WtText} node.
+     *
+     * @param text the node to visit
+     */
     public void visit(final WtText text) {
         write(text.getContent());
     }
 
+    /**
+     * Visits a {@code EngNowiki} node.
+     *
+     * @param nowiki the node to visit
+     */
     public void visit(final EngNowiki nowiki) {
         write(nowiki.getContent());
     }
 
+    /**
+     * Visits a {@code WtWhitespace} node.
+     *
+     * @param w the node to visit
+     */
     public void visit(final WtWhitespace w) {
         needSpace = true;
     }
 
+    /**
+     * Visits a {@code WtNewline} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtNewline n) {
         needSpace = true;
     }
 
+    /**
+     * Visits a {@code WtParagraph} node.
+     *
+     * @param p the node to visit
+     */
     public void visit(final WtParagraph p) {
         if (cellDepth > 0) {
             needSpace = true;
@@ -207,6 +253,11 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
         newline();
     }
 
+    /**
+     * Visits a {@code WtSection} node.
+     *
+     * @param s the node to visit
+     */
     public void visit(final WtSection s) {
         newline();
         iterate(s.getHeading());
@@ -214,49 +265,94 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
         iterate(s.getBody());
     }
 
+    /**
+     * Visits a {@code WtListItem} node.
+     *
+     * @param item the node to visit
+     */
     public void visit(final WtListItem item) {
         newline();
         iterate(item);
         newline();
     }
 
+    /**
+     * Visits a {@code WtDefinitionListTerm} node.
+     *
+     * @param term the node to visit
+     */
     public void visit(final WtDefinitionListTerm term) {
         newline();
         iterate(term);
         newline();
     }
 
+    /**
+     * Visits a {@code WtDefinitionListDef} node.
+     *
+     * @param def the node to visit
+     */
     public void visit(final WtDefinitionListDef def) {
         newline();
         iterate(def);
         newline();
     }
 
+    /**
+     * Visits a {@code WtSemiPreLine} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtSemiPreLine n) {
         iterate(n);
         newline();
     }
 
+    /**
+     * Visits a {@code WtTableRow} node.
+     *
+     * @param row the node to visit
+     */
     public void visit(final WtTableRow row) {
         newline();
         iterate(row.getBody());
         newline();
     }
 
+    /**
+     * Visits a {@code WtTableCaption} node.
+     *
+     * @param caption the node to visit
+     */
     public void visit(final WtTableCaption caption) {
         newline();
         iterate(caption.getBody());
         newline();
     }
 
+    /**
+     * Visits a {@code WtTableHeader} node.
+     *
+     * @param header the node to visit
+     */
     public void visit(final WtTableHeader header) {
         cell(header.getBody());
     }
 
+    /**
+     * Visits a {@code WtTableCell} node.
+     *
+     * @param cell the node to visit
+     */
     public void visit(final WtTableCell cell) {
         cell(cell.getBody());
     }
 
+    /**
+     * Visits a {@code WtXmlCharRef} node.
+     *
+     * @param cr the node to visit
+     */
     public void visit(final WtXmlCharRef cr) {
         final int codePoint = cr.getCodePoint();
         if (HtmlSanitizer.isValidCharReference(codePoint)) {
@@ -264,17 +360,32 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
         }
     }
 
+    /**
+     * Visits a {@code WtXmlEntityRef} node.
+     *
+     * @param er the node to visit
+     */
     public void visit(final WtXmlEntityRef er) {
         final String ch = er.getResolved();
         write(ch != null ? ch : "&" + er.getName() + ";");
     }
 
+    /**
+     * Visits a {@code WtUrl} node.
+     *
+     * @param url the node to visit
+     */
     public void visit(final WtUrl url) {
         // a bare URL is rendered as itself, and people search for URLs and host names
         final String protocol = url.getProtocol();
         write(protocol == null || protocol.isEmpty() ? url.getPath() : protocol + ":" + url.getPath());
     }
 
+    /**
+     * Visits a {@code WtExternalLink} node.
+     *
+     * @param link the node to visit
+     */
     public void visit(final WtExternalLink link) {
         // "[http://example.com label]" -> "label"; "[http://example.com]" -> the URL, so it can be found
         if (link.hasTitle()) {
@@ -284,6 +395,11 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
         }
     }
 
+    /**
+     * Visits a {@code WtInternalLink} node.
+     *
+     * @param link the node to visit
+     */
     public void visit(final WtInternalLink link) {
         try {
             if (link.getTarget().isResolved()) {
@@ -315,10 +431,20 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
         write(link.getPostfix());
     }
 
+    /**
+     * Visits a {@code WtLctVarConv} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtLctVarConv n) {
         iterate(n.getText());
     }
 
+    /**
+     * Visits a {@code WtXmlElement} node.
+     *
+     * @param e the node to visit
+     */
     public void visit(final WtXmlElement e) {
         final String name = e.getName().toLowerCase(Locale.ROOT);
         if ("br".equals(name) || BLOCK_ELEMENTS.contains(name)) {
@@ -332,6 +458,11 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
         }
     }
 
+    /**
+     * Visits a {@code WtTagExtension} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtTagExtension n) {
         final String name = n.getName().trim().toLowerCase(Locale.ROOT);
         final boolean keptGallery = "gallery".equals(name) && options.keepsCaptions();
@@ -356,12 +487,27 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
     // =========================================================================
     // Stuff we want to hide
 
+    /**
+     * Visits a {@code WtRedirect} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtRedirect n) {
     }
 
+    /**
+     * Visits a {@code WtSignature} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtSignature n) {
     }
 
+    /**
+     * Visits a {@code WtImageLink} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtImageLink n) {
         // "[[File:x.jpg|thumb|alt=...|Caption]]": only the caption is prose; options and alt text are not
         if (options.keepsCaptions() && n.hasTitle()) {
@@ -371,12 +517,27 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
         }
     }
 
+    /**
+     * Visits a {@code WtIllegalCodePoint} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtIllegalCodePoint n) {
     }
 
+    /**
+     * Visits a {@code WtXmlComment} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtXmlComment n) {
     }
 
+    /**
+     * Visits a {@code WtTemplate} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtTemplate n) {
         // an inline template such as {{snd}} usually renders as separator text; don't glue its neighbours
         softSpace = true;
@@ -409,30 +570,75 @@ public class SwebleTextConverter extends AstVisitor<WtNode> {
         }
     }
 
+    /**
+     * Visits a {@code WtTemplateArgument} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtTemplateArgument n) {
     }
 
+    /**
+     * Visits a {@code WtTemplateParameter} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtTemplateParameter n) {
     }
 
+    /**
+     * Visits a {@code WtPageSwitch} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtPageSwitch n) {
     }
 
+    /**
+     * Visits a {@code WtLctRuleConv} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtLctRuleConv n) {
     }
 
+    /**
+     * Visits a {@code WtIgnored} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtIgnored n) {
     }
 
+    /**
+     * Visits a {@code WtXmlAttributes} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtXmlAttributes n) {
     }
 
+    /**
+     * Visits a {@code WtXmlStartTag} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtXmlStartTag n) {
     }
 
+    /**
+     * Visits a {@code WtXmlEndTag} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtXmlEndTag n) {
     }
 
+    /**
+     * Visits a {@code WtXmlEmptyTag} node.
+     *
+     * @param n the node to visit
+     */
     public void visit(final WtXmlEmptyTag n) {
     }
 
